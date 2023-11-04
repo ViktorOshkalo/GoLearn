@@ -31,15 +31,16 @@ type Scene struct {
 	FinishScene  bool
 }
 
-func GetScene(sceneId int) (scene Scene, success bool) {
+func GetScene(sceneId int, player Player) (scene Scene, success bool) {
 
 	fmt.Printf("Next scene: %d.\n", sceneId)
 
 	switch sceneId {
 	case 1:
 		return Scene{
-			Id:   sceneId,
-			Name: "Reach the islands",
+			Id:     sceneId,
+			Player: player,
+			Name:   "Reach the islands",
 			Location: Location{
 				Name:        "River side",
 				Description: "Strong water running. Water temparture is low. Sniper is watching for you."},
@@ -62,8 +63,9 @@ func GetScene(sceneId int) (scene Scene, success bool) {
 		}, true
 	case 2:
 		return Scene{
-			Id:   sceneId,
-			Name: "Wild nature",
+			Id:     sceneId,
+			Player: player,
+			Name:   "Wild nature",
 			Location: Location{
 				Name:        "Island 1",
 				Description: "Forest full of snakes. Night is comming.",
@@ -95,14 +97,10 @@ func (scene *Scene) RunScene() {
 	fmt.Printf("Scene: %s.\n", scene.Name)
 	fmt.Println(scene.Condition)
 
-	if scene.FinishScene {
-		return
-	}
-
-	fmt.Printf("1. %s\n", scene.Decision1.Description)
-	fmt.Printf("2. %s\n", scene.Decision2.Description)
-
 	for {
+		fmt.Printf("1. %s\n", scene.Decision1.Description)
+		fmt.Printf("2. %s\n", scene.Decision2.Description)
+
 		var choise int
 		fmt.Printf("Make a choise, %s: ", scene.Player.Name)
 		fmt.Scan(&choise)
@@ -119,48 +117,57 @@ func (scene *Scene) RunScene() {
 		}
 
 		fmt.Printf("Decision result: %s\n", decision.Result)
+
 		scene.PlayerChoise = choise
 		scene.Player.HitPoints = scene.Player.HitPoints + decision.HitPointsImpact
+
+		fmt.Printf("Hit points affected: %d\n, Hit points current: %d\n\n", decision.HitPointsImpact, scene.Player.HitPoints)
 		break
 	}
 }
 
-func (scene Scene) GetDecision() (decision Decision, success bool) {
+func (scene Scene) GetNextSceneId() (nextSceneId int, success bool) {
 	switch scene.PlayerChoise {
 	case 1:
-		return scene.Decision1, true
+		return scene.Decision1.NextSceneId, true
 	case 2:
-		return scene.Decision2, true
+		return scene.Decision2.NextSceneId, true
 	default:
-		return Decision{}, false
+		return -1, false
 	}
 }
 
 func main() {
-	var player Player = Player{Name: "Viktor"}
+	var player Player = Player{Name: "Viktor", HitPoints: 100}
 	//fmt.Print("Enter your name: ")
 	//fmt.Scan(&player.Name)
 	fmt.Printf("Hello %s. Game is starting.\n", player.Name)
 
 	sceneId := 1
 	for {
-		scene, success := GetScene(sceneId)
+		scene, success := GetScene(sceneId, player)
 		if !success {
 			fmt.Printf("Something whent wrong: unable to get scene by id %d.\n", sceneId)
 			break
 		}
 
 		scene.RunScene()
-		if scene.FinishScene {
-			fmt.Println("GAME END.")
+
+		if player.HitPoints <= 0 {
+			fmt.Println("GAME OVER. You are ded!")
 			break
 		}
 
-		decision, success := scene.GetDecision()
+		if scene.FinishScene && player.HitPoints > 0 {
+			fmt.Println("Congratulations! You suvived!")
+			break
+		}
+
+		nextSceneId, success := scene.GetNextSceneId()
 		if !success {
 			fmt.Printf("Something whent wrong: unable to get next scene, scene id %d.\n", scene.Id)
 			break
 		}
-		sceneId = decision.NextSceneId
+		sceneId = nextSceneId
 	}
 }

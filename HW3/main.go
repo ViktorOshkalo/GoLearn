@@ -74,13 +74,13 @@ func GetScene(sceneId int) (scene Scene, success bool) {
 				"Other option is to stay on the beach, get rest and stop bleading. Then go at the morning.\n" +
 				"What decision will u make?\n",
 			Decision1: Decision{
-				Description:     "Go at night.",
-				Result:          "You reached other side of the island but you lost a lot of blood.",
+				Description:     "No stop. Go at night.",
+				Result:          "You reached other side of the island but you loosed a lot of blood.",
 				HitPointsImpact: -50,
-				NextSceneId:     5,
+				NextSceneId:     4,
 			},
 			Decision2: Decision{
-				Description:     "Go at morning.",
+				Description:     "Take a rest. Go at morning.",
 				Result:          "You reached other side of the island but snake bit you. You are poisoned.",
 				HitPointsImpact: -20,
 				NextSceneId:     5,
@@ -94,24 +94,45 @@ func GetScene(sceneId int) (scene Scene, success bool) {
 func (scene *Scene) RunScene() {
 	fmt.Printf("Scene: %s.\n", scene.Name)
 	fmt.Println(scene.Condition)
+
 	if scene.FinishScene {
 		return
 	}
+
 	fmt.Printf("1. %s\n", scene.Decision1.Description)
 	fmt.Printf("2. %s\n", scene.Decision2.Description)
-	fmt.Printf("Make a choise, %s: ", scene.Player.Name)
-	fmt.Scan(&scene.PlayerChoise)
-	fmt.Println()
+
+	for {
+		var choise int
+		fmt.Printf("Make a choise, %s: ", scene.Player.Name)
+		fmt.Scan(&choise)
+		fmt.Println()
+
+		var decision Decision
+		if choise == 1 {
+			decision = scene.Decision1
+		} else if choise == 2 {
+			decision = scene.Decision2
+		} else {
+			fmt.Println("Bad number. Enter correct value.")
+			continue
+		}
+
+		fmt.Printf("Decision result: %s\n", decision.Result)
+		scene.PlayerChoise = choise
+		scene.Player.HitPoints = scene.Player.HitPoints + decision.HitPointsImpact
+		break
+	}
 }
 
-func (scene Scene) GetNextSceneId() (int, bool) {
+func (scene Scene) GetDecision() (decision Decision, success bool) {
 	switch scene.PlayerChoise {
 	case 1:
-		return scene.Decision1.NextSceneId, true
+		return scene.Decision1, true
 	case 2:
-		return scene.Decision2.NextSceneId, true
+		return scene.Decision2, true
 	default:
-		return 0, false
+		return Decision{}, false
 	}
 }
 
@@ -135,12 +156,11 @@ func main() {
 			break
 		}
 
-		nextSceneId, success := scene.GetNextSceneId()
+		decision, success := scene.GetDecision()
 		if !success {
 			fmt.Printf("Something whent wrong: unable to get next scene, scene id %d.\n", scene.Id)
 			break
 		}
-
-		sceneId = nextSceneId
+		sceneId = decision.NextSceneId
 	}
 }

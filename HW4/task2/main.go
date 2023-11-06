@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Rate struct {
 	Rate    float32
@@ -42,7 +44,7 @@ func initStudents() []Student {
 }
 
 func getSubjectRates(students []Student, subject string) []float32 {
-	var rates []float32 = []float32{}
+	rates := make([]float32, 0, len(students))
 	for _, student := range students {
 		for _, rate := range student.Rates {
 			if rate.Subject == subject {

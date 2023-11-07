@@ -17,9 +17,7 @@ func searchUserText(searchString string) (searchResult []string) {
 	fmt.Println("searching...")
 	result := []string{}
 	for _, row := range text {
-		if row == searchString {
-			result = append(result, row)
-		} else if strings.Contains(row, searchString) {
+		if strings.Contains(row, searchString) {
 			result = append(result, row)
 		}
 	}

@@ -56,16 +56,11 @@ func getSubjectRates(students []Student, subject string) []float32 {
 }
 
 func getAverageRate(rates []float32) float32 {
-	var sum float32
+	var average float32
 	for _, rate := range rates {
-		sum = sum + rate
+		average = average + rate/float32(len(rates))
 	}
-
-	if sum != 0 {
-		return sum / float32(len(rates))
-	}
-
-	return 0.0
+	return average
 }
 
 func main() {

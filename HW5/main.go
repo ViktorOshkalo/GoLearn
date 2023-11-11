@@ -2,9 +2,16 @@ package main
 
 import (
 	"fmt"
+	"main/matrix"
 )
 
-var playgroundSize = 4
+var players = []Player{
+	initPlayer("John", 'X'),
+	initPlayer("Mark", 'O'),
+	//initPlayer("Richard", 'Y'),
+}
+
+var playgroundSize = 3
 var moves map[Cell]Player = make(map[Cell]Player)
 
 type Cell struct {
@@ -12,180 +19,83 @@ type Cell struct {
 	Y int
 }
 
-type Matrix [][]int
-
 type Player struct {
 	Name             string
 	Symbol           rune
-	playgroundMatrix Matrix
+	playgroundMatrix matrix.Matrix // represents playground matrix with only palyer moves
 }
 
 func initPlayer(name string, symbol rune) Player {
 	return Player{
 		Name:             name,
 		Symbol:           symbol,
-		playgroundMatrix: initMatrix(playgroundSize, playgroundSize),
+		playgroundMatrix: matrix.InitMatrix(playgroundSize, playgroundSize),
 	}
 }
 
-func initMatrix(rows int, columns int) Matrix {
-	var matrix Matrix = make([][]int, rows, rows)
-	for i := range matrix {
-		matrix[i] = make([]int, columns, columns)
-	}
-	return matrix
-}
-
-func (matrix Matrix) getRow(i int) []int {
-	return matrix[i]
-}
-
-func (matrix Matrix) getColumn(j int) []int {
-	var output []int = make([]int, len(matrix))
-	for i := range matrix {
-		output[i] = matrix[i][j]
-	}
-	return output
-}
-
-func (matrix Matrix) getDiagonal1() []int {
-	var output []int = make([]int, len(matrix))
-	for i := range matrix {
-		output[i] = matrix[i][i]
-	}
-	return output
-}
-
-func (matrix Matrix) getDiagonal2() []int {
-	var output []int = make([]int, len(matrix))
-	for i := range matrix {
-		output[i] = matrix[i][len(matrix)-1-i]
-	}
-	return output
-}
-
-func getSum(arr []int) int {
-	var sum int
-	for _, val := range arr {
-		sum += val
-	}
-	return sum
-}
-
-func isLineTaken(line []int) bool {
-	return getSum(line) > 0
-}
-
-func checkDraw(players []Player) (isDraw bool) {
-	// check rows and colums if at least 2 players are there
-	for i := 0; i < playgroundSize; i++ {
-		playersOnRow := 0
-		playersOnColumn := 0
+func isAllLinesPartiallyTakenByAtLeastTwoPlayers(iterationsOnMatrix int, lineSelector func(i int, matrix matrix.Matrix) []int) bool {
+	for i := 0; i < iterationsOnMatrix; i++ {
+		playersTookALineCount := 0
 		for _, player := range players {
-			if isLineTaken(player.playgroundMatrix.getRow(i)) {
-				playersOnRow++
-			}
-			if isLineTaken(player.playgroundMatrix.getColumn(i)) {
-				playersOnColumn++
+			if matrix.IsLineTaken(lineSelector(i, player.playgroundMatrix)) {
+				playersTookALineCount++
 			}
 		}
-
-		if playersOnRow < 2 || playersOnColumn < 2 {
+		if playersTookALineCount < 2 {
 			return false
 		}
 	}
-
-	// check diagonals if at least 2 players are there
-	for i := 0; i < 2; i++ {
-		playersOnDiagonal1 := 0
-		playersOnDiagonal2 := 0
-		for _, player := range players {
-			if isLineTaken(player.playgroundMatrix.getDiagonal1()) {
-				playersOnDiagonal1++
-			}
-			if isLineTaken(player.playgroundMatrix.getDiagonal2()) {
-				playersOnDiagonal2++
-			}
-		}
-
-		if playersOnDiagonal1 < 2 || playersOnDiagonal2 < 2 {
-			return false
-		}
-	}
-
 	return true
 }
 
-func checkPlaygroundMatrixForWin(player Player) (win bool) {
-	for i := 0; i < playgroundSize; i++ {
-		sumRow := getSum(player.playgroundMatrix.getRow(i))
-		if sumRow == playgroundSize {
+func isDraw() (isDraw bool) {
+	if isNotEnoughMoves() {
+		return false
+	}
+
+	var rowsSelector = matrix.GetRow
+	var columnsSelector = matrix.GetColumn
+	var diagonalsSelector = matrix.GetDiagonal
+
+	return isAllLinesPartiallyTakenByAtLeastTwoPlayers(playgroundSize, rowsSelector) &&
+		isAllLinesPartiallyTakenByAtLeastTwoPlayers(playgroundSize, columnsSelector) &&
+		isAllLinesPartiallyTakenByAtLeastTwoPlayers(playgroundSize, diagonalsSelector)
+}
+
+func isAnyLineFullyTakenByOnePlayer(player Player, iterationsOnMatrix int, lineSelector func(i int, matrix matrix.Matrix) []int) bool {
+	for i := 0; i < iterationsOnMatrix; i++ {
+		sumLine := matrix.GetSum(lineSelector(i, player.playgroundMatrix))
+		if sumLine == playgroundSize {
 			return true
 		}
-		sumColumn := getSum(player.playgroundMatrix.getColumn(i))
-		if sumColumn == playgroundSize {
-			return true
-		}
 	}
-
-	sumDiagonal1 := getSum(player.playgroundMatrix.getDiagonal1())
-	if sumDiagonal1 == playgroundSize {
-		return true
-	}
-
-	sumDiagonal2 := getSum(player.playgroundMatrix.getDiagonal2())
-	if sumDiagonal2 == playgroundSize {
-		return true
-	}
-
 	return false
 }
 
-func getSymbolByPlayerMatricies(players []Player, i int, j int) (symbol rune) {
-	for _, player := range players {
-		if player.playgroundMatrix[i][j] == 1 {
-			return player.Symbol
-		}
-	}
-	return ' '
+func isNotEnoughMoves() bool {
+	return len(moves) < (playgroundSize-1)*(len(players))+1
 }
 
-func printPlayground(players []Player) {
-	var separatorLine string
-	for i := 0; i < playgroundSize; i++ {
-		separatorLine += "--------"
+func isPlayerWiner(player Player) (win bool) {
+	if isNotEnoughMoves() {
+		return false
 	}
 
-	for i := 0; i < playgroundSize; i++ {
-		var line string
-		for j := 0; j < playgroundSize; j++ {
-			line += "   "
-			line += string(getSymbolByPlayerMatricies(players, i, j))
-			if j != playgroundSize-1 {
-				line += "\t|"
-			}
-		}
-		fmt.Println(line)
+	var rowsSelector = matrix.GetRow
+	var columnsSelector = matrix.GetColumn
+	var diagonalsSelector = matrix.GetDiagonal
 
-		if i != playgroundSize-1 {
-			fmt.Println(separatorLine)
-		}
-	}
-}
-
-func printPlayers(players []Player) {
-	fmt.Println("\nPlayers:")
-	for _, player := range players {
-		fmt.Printf("Player: %s, Symbol: %c\n", player.Name, player.Symbol)
-	}
+	return isAnyLineFullyTakenByOnePlayer(player, playgroundSize, rowsSelector) ||
+		isAnyLineFullyTakenByOnePlayer(player, playgroundSize, columnsSelector) ||
+		isAnyLineFullyTakenByOnePlayer(player, 2, diagonalsSelector)
 }
 
 func validateInput(x int, y int) (err error) {
 	if x < 1 || x > playgroundSize {
-		return fmt.Errorf("x value must be from 1 to %d.", playgroundSize)
+		return fmt.Errorf("x value must be from 1 to %d", playgroundSize)
 	}
 	if y < 1 || y > playgroundSize {
-		return fmt.Errorf("y value must be from 1 to %d.", playgroundSize)
+		return fmt.Errorf("y value must be from 1 to %d", playgroundSize)
 	}
 	return nil
 }
@@ -214,33 +124,75 @@ func askForMove(player *Player) {
 	}
 }
 
-func main() {
-	players := []Player{
-		initPlayer("John", 'X'),
-		initPlayer("Mark", 'O'),
-		initPlayer("Richard", 'Y'),
+func getCellSymbol(i int, j int) (symbol rune) {
+	var result []rune = make([]rune, 0)
+	for _, player := range players {
+		if player.playgroundMatrix[i][j] == 1 { // should be garanteed it's single by 'moves' map
+			result = append(result, player.Symbol)
+		}
+	}
+	if len(result) > 1 {
+		panic("Collision in player matricies")
+	}
+	if len(result) == 1 {
+		return result[0]
+	}
+	return ' '
+}
+
+func printPlayground() {
+	var separatorLine string
+	for i := 0; i < playgroundSize; i++ {
+		separatorLine += "--------"
 	}
 
+	for i := 0; i < playgroundSize; i++ {
+		var line string
+		for j := 0; j < playgroundSize; j++ {
+			line += "   "
+			line += string(getCellSymbol(i, j))
+			if j != playgroundSize-1 {
+				line += "\t|"
+			}
+		}
+		fmt.Println(line)
+
+		if i != playgroundSize-1 {
+			fmt.Println(separatorLine)
+		}
+	}
+}
+
+func printPlayers() {
+	fmt.Println("\nPlayers:")
+	for _, player := range players {
+		fmt.Printf("Player: %s, Symbol: %c\n", player.Name, player.Symbol)
+	}
+}
+
+func main() {
 	fmt.Println("Game is starting...")
-	printPlayers(players)
+	printPlayers()
+
 	fmt.Println("\nInfo:")
 	fmt.Println("x cordinate - from left to right")
 	fmt.Println("y cordinate - from top to bottom")
 	fmt.Printf("playground size: %d x %d\n", playgroundSize, playgroundSize)
 	fmt.Println("\nGood luck!")
 
-	printPlayground(players)
+	printPlayground()
+
 	var nextPlayerNumber = 0
 	for {
 		player := players[nextPlayerNumber]
 		askForMove(&player)
-		printPlayground(players)
-		if win := checkPlaygroundMatrixForWin(player); win {
+		printPlayground()
+		if win := isPlayerWiner(player); win {
 			fmt.Printf("Congrats %s. You are winner!", player.Name)
 			break
 		}
 
-		if draw := checkDraw(players); draw {
+		if draw := isDraw(); draw {
 			fmt.Println("It's DRAW!")
 			break
 		}

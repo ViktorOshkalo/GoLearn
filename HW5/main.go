@@ -177,11 +177,11 @@ func printPlayers() {
 
 func checkSettings() {
 	if playgroundSize < 1 {
-		panic("Playground size must be grather than 1")
+		panic("Playground size must be grather than 0")
 	}
 
 	if len(players) < 1 {
-		panic("Players count must be greather than 1")
+		panic("Player list must be non empty")
 	}
 }
 

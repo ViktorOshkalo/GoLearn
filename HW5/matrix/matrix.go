@@ -2,14 +2,16 @@ package matrix
 
 import "fmt"
 
-type Matrix [][]int
-
 type DiagonalType int
 
 const (
 	LeftToRight DiagonalType = 0
 	RightToLeft DiagonalType = 1
 )
+
+type Line []int
+
+type Matrix [][]int
 
 func InitMatrix(rows int, columns int) Matrix {
 	var matrix Matrix = make([][]int, rows)
@@ -19,19 +21,27 @@ func InitMatrix(rows int, columns int) Matrix {
 	return matrix
 }
 
-func (matrix Matrix) GetRow(i int) []int {
+func (matrix Matrix) GetRow(i int) Line {
 	return GetRow(i, matrix)
 }
 
-func GetRow(i int, matrix Matrix) []int {
-	return matrix[i]
-}
-
-func (matrix Matrix) GetColumn(j int) []int {
+func (matrix Matrix) GetColumn(j int) Line {
 	return GetColumn(j, matrix)
 }
 
-func GetColumn(j int, matrix Matrix) []int {
+func (matrix Matrix) GetDiagonalLeftToRight() Line {
+	return GetDiagonalLeftToRight(matrix)
+}
+
+func (matrix Matrix) GetDiagonalRightToLeft() Line {
+	return GetDiagonalRightToLeft(matrix)
+}
+
+func GetRow(i int, matrix Matrix) Line {
+	return matrix[i]
+}
+
+func GetColumn(j int, matrix Matrix) Line {
 	var output []int = make([]int, len(matrix))
 	for i := range matrix {
 		output[i] = matrix[i][j]
@@ -39,11 +49,7 @@ func GetColumn(j int, matrix Matrix) []int {
 	return output
 }
 
-func (matrix Matrix) GetDiagonalLeftToRight() []int {
-	return GetDiagonalLeftToRight(matrix)
-}
-
-func GetDiagonalLeftToRight(matrix Matrix) []int {
+func GetDiagonalLeftToRight(matrix Matrix) Line {
 	var output []int = make([]int, len(matrix))
 	for i := range matrix {
 		output[i] = matrix[i][i]
@@ -51,11 +57,7 @@ func GetDiagonalLeftToRight(matrix Matrix) []int {
 	return output
 }
 
-func (matrix Matrix) GetDiagonalRightToLeft() []int {
-	return GetDiagonalRightToLeft(matrix)
-}
-
-func GetDiagonalRightToLeft(matrix Matrix) []int {
+func GetDiagonalRightToLeft(matrix Matrix) Line {
 	var output []int = make([]int, len(matrix))
 	for i := range matrix {
 		output[i] = matrix[i][len(matrix)-1-i]
@@ -63,7 +65,7 @@ func GetDiagonalRightToLeft(matrix Matrix) []int {
 	return output
 }
 
-func GetDiagonal(diagonalType int, matrix Matrix) []int {
+func GetDiagonal(diagonalType int, matrix Matrix) Line {
 	switch DiagonalType(diagonalType) {
 	case LeftToRight:
 		return GetDiagonalLeftToRight(matrix)
@@ -74,14 +76,18 @@ func GetDiagonal(diagonalType int, matrix Matrix) []int {
 	}
 }
 
-func GetSum(arr []int) int {
+func GetSum(line Line) int {
 	var sum int
-	for _, val := range arr {
+	for _, val := range line {
 		sum += val
 	}
 	return sum
 }
 
-func IsLineTaken(line []int) bool {
+func IsLinePartiallyTaken(line Line) bool {
 	return GetSum(line) > 0
+}
+
+func IsLineFullyTaken(line Line) bool {
+	return GetSum(line) == len(line)
 }

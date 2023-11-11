@@ -186,7 +186,7 @@ func checkSettings() {
 }
 
 func main() {
-	//checkSettings()
+	checkSettings()
 
 	fmt.Println("Game is starting...")
 	printPlayers()

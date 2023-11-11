@@ -59,7 +59,7 @@ func isDraw() (isDraw bool) {
 
 	return isAllLinesPartiallyTakenByAtLeastTwoPlayers(playgroundSize, rowsSelector) &&
 		isAllLinesPartiallyTakenByAtLeastTwoPlayers(playgroundSize, columnsSelector) &&
-		isAllLinesPartiallyTakenByAtLeastTwoPlayers(playgroundSize, diagonalsSelector)
+		isAllLinesPartiallyTakenByAtLeastTwoPlayers(2, diagonalsSelector)
 }
 
 func isAnyLineFullyTakenByOnePlayer(player Player, iterationsOnMatrix int, lineSelector func(i int, matrix matrix.Matrix) []int) bool {

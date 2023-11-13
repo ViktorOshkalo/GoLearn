@@ -33,6 +33,13 @@ func initPlayer(name string, symbol rune) Player {
 	}
 }
 
+func isNotEnoughMovesYet() bool {
+	var repeatsBeforeFirstCheck = playgroundSize - 1
+	var movesBeforeFirstCheck = repeatsBeforeFirstCheck * len(players)
+	var firstMoveToCheck = movesBeforeFirstCheck + 1
+	return len(moves) < firstMoveToCheck
+}
+
 func isAllLinesPartiallyTakenAtLeastByTwoPlayers(iterationsOnMatrix int, lineSelector func(i int, matrix matrix.Matrix) matrix.Line) bool {
 	for i := 0; i < iterationsOnMatrix; i++ {
 		playersTookALineCount := 0
@@ -49,6 +56,38 @@ func isAllLinesPartiallyTakenAtLeastByTwoPlayers(iterationsOnMatrix int, lineSel
 	return true
 }
 
+func moreThenOnePlayer(players []Player,
+	predicate func(player Player) bool,
+) bool {
+	count := 0
+	for _, player := range players {
+		if predicate(player) {
+			count++
+		}
+	}
+	return count > 1
+}
+
+func forAllLines(players []Player,
+	iterationsOnMatrix int,
+	lineSelector func(i int, matrix matrix.Matrix) matrix.Line,
+	linesPredicate func(line matrix.Line) bool,
+	playersPredicate func(players []Player, predicate func(player Player) bool) bool,
+) bool {
+	for i := 0; i < iterationsOnMatrix; i++ {
+
+		linesSelectorPredicate := func(player Player) bool {
+			line := lineSelector(i, player.playgroundMatrix)
+			return linesPredicate(line)
+		}
+
+		if !playersPredicate(players, linesSelectorPredicate) {
+			return false
+		}
+	}
+	return true
+}
+
 func isDraw() (isDraw bool) {
 	if isNotEnoughMovesYet() {
 		return false
@@ -57,6 +96,9 @@ func isDraw() (isDraw bool) {
 	var rowsSelector = matrix.GetRow
 	var columnsSelector = matrix.GetColumn
 	var diagonalsSelector = matrix.GetDiagonal
+
+	test := forAllLines(players, playgroundSize, rowsSelector, matrix.IsLinePartiallyTaken, moreThenOnePlayer)
+	fmt.Printf("Test: %t", test)
 
 	return isAllLinesPartiallyTakenAtLeastByTwoPlayers(playgroundSize, rowsSelector) &&
 		isAllLinesPartiallyTakenAtLeastByTwoPlayers(playgroundSize, columnsSelector) &&
@@ -72,13 +114,6 @@ func isAnyLineFullyTakenByPlayer(player Player, iterationsOnMatrix int, lineSele
 		}
 	}
 	return false
-}
-
-func isNotEnoughMovesYet() bool {
-	var repeatsBeforeFirstCheck = playgroundSize - 1
-	var movesBeforeFirstCheck = repeatsBeforeFirstCheck * len(players)
-	var firstMoveToCheck = movesBeforeFirstCheck + 1
-	return len(moves) < firstMoveToCheck
 }
 
 func isPlayerWiner(player Player) (win bool) {
@@ -129,18 +164,13 @@ func askForMove(player *Player) {
 	}
 }
 
-func getCellSymbolFromPlayers(i int, j int) (symbol rune) {
-	var result []rune = make([]rune, 0)
-	for _, player := range players {
-		if player.playgroundMatrix[i][j] == 1 {
-			result = append(result, player.Symbol)
+func getCell(i int, j int) (symbol rune) {
+	m := i + 1
+	n := j + 1
+	for cell, player := range moves {
+		if cell.X == m && cell.Y == n {
+			return player.Symbol
 		}
-	}
-	if len(result) > 1 {
-		panic("Collision in player matricies") // should be prevented by 'moves' map
-	}
-	if len(result) == 1 {
-		return result[0]
 	}
 	return ' '
 }
@@ -155,7 +185,7 @@ func printPlayground() {
 		var line string
 		for j := 0; j < playgroundSize; j++ {
 			line += "   "
-			line += string(getCellSymbolFromPlayers(i, j))
+			line += string(getCell(i, j))
 			if j != playgroundSize-1 {
 				line += "\t|"
 			}

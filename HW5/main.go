@@ -108,47 +108,13 @@ func isDraw() (isDraw bool) {
 	return isAllLinesPartiallyTakenByAtLeastTwoPlayers()
 }
 
-func isAnyLineFullyTakenByPlayer() bool {
-	// check rows
-	for i := 0; i < playgroundSize; i++ {
-		for _, player := range players {
-			row := player.playgroundMatrix.GetRow(i)
-			if matrix.IsLineFullyTaken(row) {
-				return true
-			}
-		}
-	}
-
-	// check columns
-	for i := 0; i < playgroundSize; i++ {
-		for _, player := range players {
-			column := player.playgroundMatrix.GetColumn(i)
-			if matrix.IsLineFullyTaken(column) {
-				return true
-			}
-		}
-	}
-
-	// check diagonal left to right
-	playersTookALineCount := 0
-	for _, player := range players {
-		diagonal := player.playgroundMatrix.GetDiagonalLeftToRight()
-		if matrix.IsLineFullyTaken(diagonal) {
+func isAnyLineFullyTakenByPlayer(player Player) bool {
+	lines := player.playgroundMatrix.GetAllLines()
+	for _, line := range lines {
+		if matrix.IsLineFullyTaken(line) {
 			return true
 		}
 	}
-	if playersTookALineCount < 2 {
-		return false
-	}
-
-	// check diagonal right to left
-	for _, player := range players {
-		diagonal := player.playgroundMatrix.GetDiagonalLeftToRight()
-		if matrix.IsLineFullyTaken(diagonal) {
-			return true
-		}
-	}
-
 	return false
 }
 
@@ -157,7 +123,7 @@ func isPlayerWiner(player Player) (win bool) {
 		return false
 	}
 
-	return isAnyLineFullyTakenByPlayer()
+	return isAnyLineFullyTakenByPlayer(player)
 }
 
 func validateInput(x int, y int) (err error) {

@@ -41,6 +41,17 @@ func GetRow(i int, matrix Matrix) Line {
 	return matrix[i]
 }
 
+func (matrix Matrix) GetAllLines() []Line {
+	var output []Line
+	for i := range matrix {
+		output = append(output, GetColumn(i, matrix))
+		output = append(output, GetRow(i, matrix))
+	}
+	output = append(output, GetDiagonalLeftToRight(matrix))
+	output = append(output, GetDiagonalRightToLeft(matrix))
+	return output
+}
+
 func GetColumn(j int, matrix Matrix) Line {
 	var output []int = make([]int, len(matrix))
 	for i := range matrix {

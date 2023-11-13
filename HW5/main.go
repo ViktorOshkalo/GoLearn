@@ -5,13 +5,17 @@ import (
 	"main/matrix"
 )
 
+const (
+	playgroundSize int = 3
+	diagonalsCount int = 2
+)
+
 var players = []Player{
 	initPlayer("John", 'X'),
 	initPlayer("Mark", 'O'),
 	//initPlayer("Richard", 'Y'),
 }
 
-var playgroundSize = 3
 var moves map[Cell]Player = make(map[Cell]Player)
 
 type Cell struct {
@@ -40,12 +44,13 @@ func isNotEnoughMovesYet() bool {
 	return len(moves) < firstMoveToCheck
 }
 
-func isAllLinesPartiallyTakenAtLeastByTwoPlayers(iterationsOnMatrix int, lineSelector func(i int, matrix matrix.Matrix) matrix.Line) bool {
-	for i := 0; i < iterationsOnMatrix; i++ {
+func isAllLinesPartiallyTakenByAtLeastTwoPlayers() bool {
+	// check columns
+	for i := 0; i < playgroundSize; i++ {
 		playersTookALineCount := 0
 		for _, player := range players {
-			line := lineSelector(i, player.playgroundMatrix)
-			if matrix.IsLinePartiallyTaken(line) {
+			column := player.playgroundMatrix.GetColumn(i)
+			if matrix.IsLinePartiallyTaken(column) {
 				playersTookALineCount++
 			}
 		}
@@ -53,38 +58,45 @@ func isAllLinesPartiallyTakenAtLeastByTwoPlayers(iterationsOnMatrix int, lineSel
 			return false
 		}
 	}
-	return true
-}
 
-func moreThenOnePlayer(players []Player,
-	predicate func(player Player) bool,
-) bool {
-	count := 0
-	for _, player := range players {
-		if predicate(player) {
-			count++
+	// check rows
+	for i := 0; i < playgroundSize; i++ {
+		playersTookALineCount := 0
+		for _, player := range players {
+			row := player.playgroundMatrix.GetRow(i)
+			if matrix.IsLinePartiallyTaken(row) {
+				playersTookALineCount++
+			}
 		}
-	}
-	return count > 1
-}
-
-func forAllLines(players []Player,
-	iterationsOnMatrix int,
-	lineSelector func(i int, matrix matrix.Matrix) matrix.Line,
-	linesPredicate func(line matrix.Line) bool,
-	playersPredicate func(players []Player, predicate func(player Player) bool) bool,
-) bool {
-	for i := 0; i < iterationsOnMatrix; i++ {
-
-		linesSelectorPredicate := func(player Player) bool {
-			line := lineSelector(i, player.playgroundMatrix)
-			return linesPredicate(line)
-		}
-
-		if !playersPredicate(players, linesSelectorPredicate) {
+		if playersTookALineCount < 2 {
 			return false
 		}
 	}
+
+	// check diagonal left ro right
+	playersTookALineCount := 0
+	for _, player := range players {
+		line := player.playgroundMatrix.GetDiagonalLeftToRight()
+		if matrix.IsLinePartiallyTaken(line) {
+			playersTookALineCount++
+		}
+	}
+	if playersTookALineCount < 2 {
+		return false
+	}
+
+	// check diagonal right to left
+	playersTookALineCount = 0
+	for _, player := range players {
+		line := player.playgroundMatrix.GetDiagonalLeftToRight()
+		if matrix.IsLinePartiallyTaken(line) {
+			playersTookALineCount++
+		}
+	}
+	if playersTookALineCount < 2 {
+		return false
+	}
+
 	return true
 }
 
@@ -93,26 +105,50 @@ func isDraw() (isDraw bool) {
 		return false
 	}
 
-	var rowsSelector = matrix.GetRow
-	var columnsSelector = matrix.GetColumn
-	var diagonalsSelector = matrix.GetDiagonal
-
-	test := forAllLines(players, playgroundSize, rowsSelector, matrix.IsLinePartiallyTaken, moreThenOnePlayer)
-	fmt.Printf("Test: %t", test)
-
-	return isAllLinesPartiallyTakenAtLeastByTwoPlayers(playgroundSize, rowsSelector) &&
-		isAllLinesPartiallyTakenAtLeastByTwoPlayers(playgroundSize, columnsSelector) &&
-		isAllLinesPartiallyTakenAtLeastByTwoPlayers(2, diagonalsSelector)
+	return isAllLinesPartiallyTakenByAtLeastTwoPlayers()
 }
 
-func isAnyLineFullyTakenByPlayer(player Player, iterationsOnMatrix int, lineSelector func(i int, matrix matrix.Matrix) matrix.Line) bool {
-	for i := 0; i < iterationsOnMatrix; i++ {
-		line := lineSelector(i, player.playgroundMatrix)
-		var isFullyTaken = matrix.IsLineFullyTaken(line)
-		if isFullyTaken {
+func isAnyLineFullyTakenByPlayer() bool {
+	// check rows
+	for i := 0; i < playgroundSize; i++ {
+		for _, player := range players {
+			row := player.playgroundMatrix.GetRow(i)
+			if matrix.IsLineFullyTaken(row) {
+				return true
+			}
+		}
+	}
+
+	// check columns
+	for i := 0; i < playgroundSize; i++ {
+		for _, player := range players {
+			column := player.playgroundMatrix.GetColumn(i)
+			if matrix.IsLineFullyTaken(column) {
+				return true
+			}
+		}
+	}
+
+	// check diagonal left to right
+	playersTookALineCount := 0
+	for _, player := range players {
+		diagonal := player.playgroundMatrix.GetDiagonalLeftToRight()
+		if matrix.IsLineFullyTaken(diagonal) {
 			return true
 		}
 	}
+	if playersTookALineCount < 2 {
+		return false
+	}
+
+	// check diagonal right to left
+	for _, player := range players {
+		diagonal := player.playgroundMatrix.GetDiagonalLeftToRight()
+		if matrix.IsLineFullyTaken(diagonal) {
+			return true
+		}
+	}
+
 	return false
 }
 
@@ -121,13 +157,7 @@ func isPlayerWiner(player Player) (win bool) {
 		return false
 	}
 
-	var rowsSelector = matrix.GetRow
-	var columnsSelector = matrix.GetColumn
-	var diagonalsSelector = matrix.GetDiagonal
-
-	return isAnyLineFullyTakenByPlayer(player, playgroundSize, rowsSelector) ||
-		isAnyLineFullyTakenByPlayer(player, playgroundSize, columnsSelector) ||
-		isAnyLineFullyTakenByPlayer(player, 2, diagonalsSelector)
+	return isAnyLineFullyTakenByPlayer()
 }
 
 func validateInput(x int, y int) (err error) {
@@ -165,10 +195,8 @@ func askForMove(player *Player) {
 }
 
 func getCell(i int, j int) (symbol rune) {
-	m := i + 1
-	n := j + 1
 	for cell, player := range moves {
-		if cell.X == m && cell.Y == n {
+		if cell.X == i && cell.Y == j {
 			return player.Symbol
 		}
 	}
@@ -177,22 +205,23 @@ func getCell(i int, j int) (symbol rune) {
 
 func printPlayground() {
 	var separatorLine string
-	for i := 0; i < playgroundSize; i++ {
+	for i := 1; i <= playgroundSize; i++ {
 		separatorLine += "--------"
 	}
 
-	for i := 0; i < playgroundSize; i++ {
+	for j := 1; j <= playgroundSize; j++ {
 		var line string
-		for j := 0; j < playgroundSize; j++ {
+		for i := 1; i <= playgroundSize; i++ {
 			line += "   "
 			line += string(getCell(i, j))
-			if j != playgroundSize-1 {
+			if i != playgroundSize {
 				line += "\t|"
 			}
 		}
+
 		fmt.Println(line)
 
-		if i != playgroundSize-1 {
+		if j != playgroundSize {
 			fmt.Println(separatorLine)
 		}
 	}

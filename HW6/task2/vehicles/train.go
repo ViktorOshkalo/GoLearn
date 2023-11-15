@@ -6,30 +6,24 @@ import (
 )
 
 type Train struct {
+	PassengerTransferable
 }
 
-func (car Train) Move() {
-	fmt.Println("Train is going")
+func (train Train) Move(to string) {
+	fmt.Printf("Train is going to: %s\n", to)
 }
 
-func (car Train) Stop() {
+func (train Train) Stop() {
 	fmt.Println("Train stopped")
 }
 
-func (car Train) Accelerate() {
+func (train Train) Accelerate() {
 	fmt.Println("Train is speeding up!!!")
 }
 
-func (car Train) OnBoarding() {
-	fmt.Println("Passengers are boarding into Train")
-}
-
-func (car Train) OffBoarding() {
-	fmt.Println("Passengers are offboarding from Train")
-}
-
-func (car Train) PrintInfo() {
+func (train Train) PrintInfo() {
 	fmt.Println("Vehicle type: Train")
+	fmt.Printf("Max passengers: %d\n", train.MaxCapacity)
 }
 
-var _ interfaces.PassengerVehicle = Train{}
+var _ interfaces.IPassengerVehicle = Train{}

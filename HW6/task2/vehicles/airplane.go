@@ -2,34 +2,28 @@ package vehicles
 
 import (
 	"fmt"
-	interfaces "main/route/interfaces"
+	"main/route/interfaces"
 )
 
 type Airplane struct {
+	PassengerTransferable
 }
 
-func (car Airplane) Move() {
-	fmt.Println("Airplane is flying")
+func (airplane Airplane) Move(to string) {
+	fmt.Printf("Airplane is flying to: %s\n", to)
 }
 
-func (car Airplane) Stop() {
+func (airplane Airplane) Stop() {
 	fmt.Println("Airplane landed")
 }
 
-func (car Airplane) Accelerate() {
+func (airplane Airplane) Accelerate() {
 	fmt.Println("Airplane is taking off!!!")
 }
 
-func (car Airplane) OnBoarding() {
-	fmt.Println("Passengers are boarding into Airplane")
-}
-
-func (car Airplane) OffBoarding() {
-	fmt.Println("Passengers are offboarding from Airplane")
-}
-
-func (car Airplane) PrintInfo() {
+func (airplane Airplane) PrintInfo() {
 	fmt.Println("Vehicle type: Airplane")
+	fmt.Printf("Max passengers: %d\n", airplane.MaxCapacity)
 }
 
-var _ interfaces.PassengerVehicle = Airplane{}
+var _ interfaces.IPassengerVehicle = Airplane{}

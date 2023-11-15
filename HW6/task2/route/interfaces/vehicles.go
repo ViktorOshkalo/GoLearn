@@ -1,14 +1,21 @@
 package interfaces
 
-type Vehicle interface {
-	Move()
+import "main/passenger"
+
+type IVehicle interface {
+	Move(destinationName string)
 	Stop()
 	Accelerate()
-	PrintInfo()
 }
 
-type PassengerVehicle interface {
-	Vehicle
-	OnBoarding()
+type IPassengerTransferable interface {
+	GetMaxCapacity() int
+	OnBoarding(pessanger []passenger.Passenger) error
 	OffBoarding()
+}
+
+type IPassengerVehicle interface {
+	IVehicle
+	IPassengerTransferable
+	PrintInfo()
 }

@@ -20,8 +20,9 @@ func (route Route) PrintVehicles() {
 	}
 }
 
-func (route Route) RunRoute() {
-	fmt.Println("\nRoute is running...")
+func (route Route) RunRoute(passengerName string) {
+	fmt.Printf("\nHello %s", passengerName)
+	fmt.Println("\nRoute is starting. Enjoy your run!")
 	for _, v := range route.Vehicles {
 		fmt.Println("\nNext vehicle is running: ")
 		v.PrintInfo()

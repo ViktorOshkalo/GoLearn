@@ -21,11 +21,11 @@ func (car Car) Accelerate() {
 }
 
 func (car Car) OnBoarding() {
-	fmt.Println("Pessangeers are boarding into Car")
+	fmt.Println("Passengers are boarding into Car")
 }
 
 func (car Car) OffBoarding() {
-	fmt.Println("Pessangeers are offboarding from Car")
+	fmt.Println("Passengers are offboarding from Car")
 }
 
 func (car Car) PrintInfo() {

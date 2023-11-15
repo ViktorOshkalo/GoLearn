@@ -17,5 +17,7 @@ func main() {
 	route.AddVehicle(vehicles.Car{})
 
 	route.PrintVehicles()
-	route.RunRoute()
+
+	passengerName := "Mike"
+	route.RunRoute(passengerName)
 }

@@ -26,7 +26,7 @@ func generateNumbersAndPrintMinMax(numbersCount int, maxNumber int, channelNumbe
 	fmt.Println("Max: ", max)
 }
 
-func findMinMax(channelNumbers chan int, minMaxChannel chan int) {
+func findMinMax(channelNumbers chan int, channelMinMax chan int) {
 	var numbers []int
 	for n := range channelNumbers {
 		fmt.Println("Receiving: ", n)
@@ -46,8 +46,10 @@ func findMinMax(channelNumbers chan int, minMaxChannel chan int) {
 		}
 	}
 
-	minMaxChannel <- min
-	minMaxChannel <- max
+	channelMinMax <- min
+	channelMinMax <- max
+
+	close(channelMinMax)
 }
 
 func main() {

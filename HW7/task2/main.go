@@ -60,7 +60,7 @@ func findMinMax(channelNumbers chan int, channelMinMax chan MinMax) {
 func main() {
 	fmt.Println("Go!")
 
-	numbersCount := 0
+	numbersCount := 10
 	maxValue := 100
 
 	channelNumbers := make(chan int, numbersCount)
@@ -71,4 +71,5 @@ func main() {
 	go findMinMax(channelNumbers, channelMinMax)
 
 	<-channelDone
+	fmt.Println("Exit")
 }

@@ -6,7 +6,12 @@ import (
 	"time"
 )
 
-func generateNumbersAndPrintMinMax(numbersCount int, maxNumber int, channelNumbers chan int, channelMinMax chan int) {
+type MinMax struct {
+	Min int
+	Max int
+}
+
+func generateNumbersAndPrintMinMax(numbersCount int, maxNumber int, channelNumbers chan int, channelMinMax chan MinMax, channelDone chan bool) {
 	for i := 0; i < numbersCount; i++ {
 		num := rand.Intn(maxNumber)
 		fmt.Println("Sending: ", num)
@@ -15,22 +20,23 @@ func generateNumbersAndPrintMinMax(numbersCount int, maxNumber int, channelNumbe
 	}
 	close(channelNumbers)
 
-	min := <-channelMinMax
-	max := <-channelMinMax
+	minMax := <-channelMinMax
 
-	if min > max {
-		panic("wrong min max values")
-	}
+	fmt.Println("Min: ", minMax.Min)
+	fmt.Println("Max: ", minMax.Max)
 
-	fmt.Println("Min: ", min)
-	fmt.Println("Max: ", max)
+	channelDone <- true
 }
 
-func findMinMax(channelNumbers chan int, channelMinMax chan int) {
+func findMinMax(channelNumbers chan int, channelMinMax chan MinMax) {
 	var numbers []int
 	for n := range channelNumbers {
 		fmt.Println("Receiving: ", n)
 		numbers = append(numbers, n)
+	}
+
+	if len(numbers) == 0 {
+		panic("No numbers recieved!")
 	}
 
 	fmt.Println("Numbers received: ", numbers)
@@ -46,8 +52,7 @@ func findMinMax(channelNumbers chan int, channelMinMax chan int) {
 		}
 	}
 
-	channelMinMax <- min
-	channelMinMax <- max
+	channelMinMax <- MinMax{Min: min, Max: max}
 
 	close(channelMinMax)
 }
@@ -55,14 +60,15 @@ func findMinMax(channelNumbers chan int, channelMinMax chan int) {
 func main() {
 	fmt.Println("Go!")
 
-	numbersCount := 10
+	numbersCount := 0
 	maxValue := 100
 
 	channelNumbers := make(chan int, numbersCount)
-	channelMinMax := make(chan int)
+	channelMinMax := make(chan MinMax)
+	channelDone := make(chan bool)
 
-	go generateNumbersAndPrintMinMax(numbersCount, maxValue, channelNumbers, channelMinMax)
+	go generateNumbersAndPrintMinMax(numbersCount, maxValue, channelNumbers, channelMinMax, channelDone)
 	go findMinMax(channelNumbers, channelMinMax)
 
-	time.Sleep(time.Second)
+	<-channelDone
 }

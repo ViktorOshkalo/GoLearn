@@ -8,7 +8,7 @@ import (
 )
 
 type Barrier struct {
-	blockers <-chan chan int
+	blockers <-chan chan bool
 }
 
 func (bar *Barrier) TryWait(timeout time.Duration) (success bool) {
@@ -27,11 +27,11 @@ func GetNewBarrier(workersCount int) Barrier {
 	return barier
 }
 
-func blockersGenerator(capacity int) <-chan chan int {
-	out := make(chan chan int)
+func blockersGenerator(capacity int) <-chan chan bool {
+	out := make(chan chan bool)
 	go func() {
 		for {
-			blocker := make(chan int)
+			blocker := make(chan bool)
 			for i := 0; i < capacity; i++ {
 				out <- blocker
 			}

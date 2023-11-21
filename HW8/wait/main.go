@@ -17,12 +17,18 @@ func (bar *Barrier) Wait() {
 	<-blocker
 }
 
-func blockersGenerator(length int) <-chan chan bool {
+func GetNewBarrier(workersCount int) Barrier {
+	barier := Barrier{}
+	barier.blockers = blockersGenerator(workersCount)
+	return barier
+}
+
+func blockersGenerator(capacity int) <-chan chan bool {
 	out := make(chan chan bool)
 	go func() {
 		for {
 			blocker := make(chan bool)
-			for i := 0; i < length; i++ {
+			for i := 0; i < capacity; i++ {
 				out <- blocker
 			}
 			close(blocker)
@@ -44,12 +50,6 @@ func workerWait(barrier Barrier, id int) {
 
 	barrier.Wait()
 	fmt.Printf("End work %d\n", id)
-}
-
-func GetNewBarrier(workersCount int) Barrier {
-	barier := Barrier{}
-	barier.blockers = blockersGenerator(workersCount)
-	return barier
 }
 
 func main() {

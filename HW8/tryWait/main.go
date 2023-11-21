@@ -28,12 +28,18 @@ func (bar *Barrier) TryWait(timeout time.Duration) (success bool) {
 	}
 }
 
-func blockersGenerator(length int) <-chan chan int {
+func GetNewBarrier(workersCount int) Barrier {
+	barier := Barrier{}
+	barier.blockers = blockersGenerator(workersCount)
+	return barier
+}
+
+func blockersGenerator(capacity int) <-chan chan int {
 	out := make(chan chan int)
 	go func() {
 		for {
 			blocker := make(chan int)
-			for i := 0; i < length; i++ {
+			for i := 0; i < capacity; i++ {
 				out <- blocker
 			}
 			close(blocker)
@@ -60,12 +66,6 @@ func workerTryWait(barrier Barrier, id int, timeout time.Duration) {
 	}
 }
 
-func GetNewBarrier(workersCount int) Barrier {
-	barier := Barrier{}
-	barier.blockers = blockersGenerator(workersCount)
-	return barier
-}
-
 func main() {
 	fmt.Println("GO!")
 
@@ -74,7 +74,7 @@ func main() {
 
 	bar := GetNewBarrier(barierCpacity)
 
-	timeout := time.Second * 5
+	timeout := time.Second * 3
 
 	var wg sync.WaitGroup
 	for i := 0; i < workersCount; i++ {

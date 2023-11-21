@@ -12,7 +12,6 @@ type Barrier struct {
 }
 
 func (bar *Barrier) Wait() {
-	fmt.Println("Waiting...")
 	blocker := <-bar.blockers
 	<-blocker
 }
@@ -46,7 +45,7 @@ func workerWait(barrier Barrier, id int) {
 
 	sec := getRandomSeconds()
 	time.Sleep(time.Duration(sec) * time.Second) // do some work
-	fmt.Printf("Work %d in progress, duration: %d sec\n", id, sec)
+	fmt.Printf("Work %d in progress, duration: %d sec. Waiting...\n", id, sec)
 
 	barrier.Wait()
 	fmt.Printf("End work %d\n", id)

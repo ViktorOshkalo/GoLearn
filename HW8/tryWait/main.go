@@ -11,14 +11,7 @@ type Barrier struct {
 	blockers <-chan chan int
 }
 
-func (bar *Barrier) Wait() {
-	fmt.Println("Waiting...")
-	blocker := <-bar.blockers
-	<-blocker
-}
-
 func (bar *Barrier) TryWait(timeout time.Duration) (success bool) {
-	fmt.Println("Waiting...")
 	blocker := <-bar.blockers
 	select {
 	case <-blocker:
@@ -53,16 +46,14 @@ func getRandomSeconds() int32 {
 }
 
 func workerTryWait(barrier Barrier, id int, timeout time.Duration) {
-	fmt.Printf("Start work %d\n", id)
-
 	sec := getRandomSeconds()
 	time.Sleep(time.Duration(sec) * time.Second) // do some work
-	fmt.Printf("Work %d in progress, duration: %d sec\n", id, sec)
+	fmt.Printf("Work %d in progress, duration: %d sec. Waiting...\n", id, sec)
 
 	if barrier.TryWait(timeout) {
-		fmt.Printf("End work %d\n", id)
+		fmt.Printf("End work %d: success\n", id)
 	} else {
-		fmt.Printf("Timeout on work %d\n", id)
+		fmt.Printf("End work %d: timeout\n", id)
 	}
 }
 

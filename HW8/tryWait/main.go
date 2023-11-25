@@ -8,44 +8,60 @@ import (
 )
 
 type Barrier struct {
-	blockers <-chan chan bool
+	blocker              chan bool
+	awaitingWorkersCount int
+	capacity             int
+	mutex                sync.Mutex
+}
+
+func (barier *Barrier) takeBlocker() chan bool {
+	barier.mutex.Lock()
+	blocker := barier.blocker
+	barier.awaitingWorkersCount++
+	if barier.awaitingWorkersCount == barier.capacity {
+		close(barier.blocker)
+		barier.awaitingWorkersCount = 0
+		barier.blocker = make(chan bool)
+	}
+	barier.mutex.Unlock()
+	return blocker
+}
+
+func (bar *Barrier) tryDiscardBlocker() (success bool) {
+	bar.mutex.Lock()
+	success = false
+	isAllAvailableBlockersTakenBefore := bar.awaitingWorkersCount == 0
+	if !isAllAvailableBlockersTakenBefore {
+		bar.awaitingWorkersCount--
+		success = true
+	}
+	bar.mutex.Unlock()
+	return
 }
 
 func (bar *Barrier) TryWait(timeout time.Duration) (success bool) {
-	blocker := <-bar.blockers
+	blocker := bar.takeBlocker()
 	select {
 	case <-blocker:
 		return true
 	case <-time.After(timeout):
-		return false
+		discardSuccess := bar.tryDiscardBlocker()
+		return !discardSuccess
 	}
 }
 
-func GetNewBarrier(workersCount int) Barrier {
+func GetNewBarrier(workersCount int, barierCapacity int) *Barrier {
 	barier := Barrier{}
-	barier.blockers = blockersGenerator(workersCount)
-	return barier
-}
-
-func blockersGenerator(capacity int) <-chan chan bool {
-	out := make(chan chan bool)
-	go func() {
-		for {
-			blocker := make(chan bool)
-			for i := 0; i < capacity; i++ {
-				out <- blocker
-			}
-			close(blocker)
-		}
-	}()
-	return out
+	barier.capacity = barierCapacity
+	barier.blocker = make(chan bool)
+	return &barier
 }
 
 func getRandomSeconds() int32 {
 	return rand.Int31n(15)
 }
 
-func workerTryWait(barrier Barrier, id int, timeout time.Duration) {
+func runWorker(barrier *Barrier, id int, timeout time.Duration) {
 	sec := getRandomSeconds()
 	time.Sleep(time.Duration(sec) * time.Second) // do some work
 	fmt.Printf("Work %d in progress, duration: %d sec. Waiting...\n", id, sec)
@@ -62,18 +78,16 @@ func main() {
 
 	barierCpacity := 3
 	workersCount := 14
-
-	bar := GetNewBarrier(barierCpacity)
-
 	timeout := time.Second * 3
 
+	barier := GetNewBarrier(workersCount, barierCpacity)
 	var wg sync.WaitGroup
 	for i := 0; i < workersCount; i++ {
 		wg.Add(1)
 		id := i
 		go func() {
 			defer wg.Done()
-			workerTryWait(bar, id, timeout)
+			runWorker(barier, id, timeout)
 		}()
 	}
 

@@ -16,22 +16,24 @@ func (bar *Barrier) Wait() {
 	<-blocker
 }
 
-func GetNewBarrier(workersCount int) Barrier {
+func GetNewBarrier(workersCount int, capacity int) Barrier {
 	barier := Barrier{}
-	barier.blockers = blockersGenerator(workersCount)
+	barier.blockers = getNewBlockersGenerator(workersCount, capacity)
 	return barier
 }
 
-func blockersGenerator(capacity int) <-chan chan bool {
+func getNewBlockersGenerator(blockersCount int, capacity int) <-chan chan bool {
 	out := make(chan chan bool)
 	go func() {
-		for {
+		for blockersSent := 0; blockersSent < blockersCount; {
 			blocker := make(chan bool)
-			for i := 0; i < capacity; i++ {
+			for j := 0; j < capacity; j++ {
 				out <- blocker
+				blockersSent++
 			}
 			close(blocker)
 		}
+		fmt.Println("Blockers generator finished.")
 	}()
 	return out
 }
@@ -40,15 +42,15 @@ func getRandomSeconds() int32 {
 	return rand.Int31n(15)
 }
 
-func workerWait(barrier Barrier, id int) {
-	fmt.Printf("Start work %d\n", id)
+func runWorker(barrier Barrier, workId int) {
+	fmt.Printf("Start work %d\n", workId)
 
 	sec := getRandomSeconds()
 	time.Sleep(time.Duration(sec) * time.Second) // do some work
-	fmt.Printf("Work %d in progress, duration: %d sec. Waiting...\n", id, sec)
+	fmt.Printf("Work %d in progress, duration: %d sec. Waiting...\n", workId, sec)
 
 	barrier.Wait()
-	fmt.Printf("End work %d\n", id)
+	fmt.Printf("End work %d\n", workId)
 }
 
 func main() {
@@ -57,18 +59,18 @@ func main() {
 	barierCpacity := 3
 	workersCount := 12
 	if (workersCount % barierCpacity) != 0 {
-		panic("Workers count must be multiple to barier capacity. Otherwise deadlock")
+		panic("Workers count must be divisible for barier capacity. Otherwise deadlock")
 	}
 
-	bar := GetNewBarrier(barierCpacity)
+	barier := GetNewBarrier(workersCount, barierCpacity)
 
 	var wg sync.WaitGroup
 	for i := 0; i < workersCount; i++ {
 		wg.Add(1)
-		id := i
+		workId := i
 		go func() {
 			defer wg.Done()
-			workerWait(bar, id)
+			runWorker(barier, workId)
 		}()
 	}
 

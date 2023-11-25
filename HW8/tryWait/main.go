@@ -8,9 +8,9 @@ import (
 )
 
 type Barrier struct {
+	capacity             int
 	blocker              chan bool
 	awaitingWorkersCount int
-	capacity             int
 	mutex                sync.Mutex
 }
 
@@ -30,8 +30,8 @@ func (barier *Barrier) takeBlocker() chan bool {
 func (bar *Barrier) tryDiscardBlocker() (success bool) {
 	bar.mutex.Lock()
 	success = false
-	isAllAvailableBlockersTakenBefore := bar.awaitingWorkersCount == 0
-	if !isAllAvailableBlockersTakenBefore {
+	isAllAvailableBlockersTakenBeforeTimeout := bar.awaitingWorkersCount == 0
+	if !isAllAvailableBlockersTakenBeforeTimeout {
 		bar.awaitingWorkersCount--
 		success = true
 	}

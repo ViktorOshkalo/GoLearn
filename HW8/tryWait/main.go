@@ -30,8 +30,8 @@ func (barier *Barrier) takeBlocker() chan bool {
 func (bar *Barrier) tryDiscardBlocker() (success bool) {
 	bar.mutex.Lock()
 	success = false
-	isAllAvailableBlockersTakenBeforeTimeout := bar.awaitingWorkersCount == 0
-	if !isAllAvailableBlockersTakenBeforeTimeout {
+	areBlockersAlreadyTaken := bar.awaitingWorkersCount == 0
+	if !areBlockersAlreadyTaken {
 		bar.awaitingWorkersCount--
 		success = true
 	}
@@ -50,7 +50,7 @@ func (bar *Barrier) TryWait(timeout time.Duration) (success bool) {
 	}
 }
 
-func GetNewBarrier(workersCount int, barierCapacity int) *Barrier {
+func GetNewBarrier(barierCapacity int) *Barrier {
 	barier := Barrier{}
 	barier.capacity = barierCapacity
 	barier.blocker = make(chan bool)
@@ -80,7 +80,7 @@ func main() {
 	workersCount := 14
 	timeout := time.Second * 3
 
-	barier := GetNewBarrier(workersCount, barierCpacity)
+	barier := GetNewBarrier(barierCpacity)
 	var wg sync.WaitGroup
 	for i := 0; i < workersCount; i++ {
 		wg.Add(1)

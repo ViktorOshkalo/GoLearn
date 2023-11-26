@@ -27,15 +27,15 @@ func (barier *Barrier) takeBlocker() chan bool {
 	return blocker
 }
 
-func (bar *Barrier) tryDiscardBlocker() (success bool) {
-	bar.mutex.Lock()
+func (barier *Barrier) tryDiscardBlocker() (success bool) {
+	barier.mutex.Lock()
 	success = false
-	blockersAlreadyTaken := bar.awaitingWorkersCount == 0
+	blockersAlreadyTaken := barier.awaitingWorkersCount == 0
 	if !blockersAlreadyTaken {
-		bar.awaitingWorkersCount--
+		barier.awaitingWorkersCount--
 		success = true
 	}
-	bar.mutex.Unlock()
+	barier.mutex.Unlock()
 	return
 }
 

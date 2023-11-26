@@ -37,11 +37,11 @@ func (barier *Barrier) tryDiscardBlocker(discardToken int) (success bool) {
 	defer barier.mutex.Unlock()
 
 	blockersAlreadyTaken := barier.awaitingGroupId != discardToken
-	if !blockersAlreadyTaken {
-		barier.awaitingWorkersCount--
-		return true
+	if blockersAlreadyTaken {
+		return false
 	}
-	return false
+	barier.awaitingWorkersCount--
+	return true
 }
 
 func (bar *Barrier) TryWait(timeout time.Duration) (success bool) {

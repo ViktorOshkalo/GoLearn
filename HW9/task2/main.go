@@ -39,7 +39,7 @@ func initData() {
 		Classes: []models.Class{
 			{
 				Name:    "1A",
-				Teacher: teachers[1],
+				Teacher: teachers[user1.Id],
 				Students: []models.Student{
 					{Name: "Rabbit", Rates: map[string]int{"Poetry": 12, "Music": 12}},
 					{Name: "Wink", Rates: map[string]int{"Poetry": 5, "Music": 6}},
@@ -48,7 +48,7 @@ func initData() {
 			},
 			{
 				Name:    "1B",
-				Teacher: teachers[2],
+				Teacher: teachers[user2.Id],
 				Students: []models.Student{
 					{Name: "Paul", Rates: map[string]int{"Poetry": 9, "Music": 8}},
 					{Name: "Alex", Rates: map[string]int{"Poetry": 10, "Music": 10}},
@@ -57,7 +57,7 @@ func initData() {
 			},
 			{
 				Name:    "1C",
-				Teacher: teachers[3],
+				Teacher: teachers[user3.Id],
 				Students: []models.Student{
 					{Name: "Lotto", Rates: map[string]int{"Poetry": 5, "Music": 4}},
 					{Name: "Lyckety-Splyt", Rates: map[string]int{"Poetry": 7, "Music": 10}},
@@ -92,13 +92,11 @@ func AuthenticateMiddleware(next http.Handler) http.Handler {
 
 		user, found := users[username]
 		if !found {
-			fmt.Fprintf(w, "User not found")
 			w.WriteHeader(http.StatusForbidden)
 			return
 		}
 
 		if user.Password != password {
-			fmt.Fprintf(w, "Wrong password")
 			w.WriteHeader(http.StatusForbidden)
 			return
 		}

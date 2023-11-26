@@ -30,8 +30,8 @@ func (barier *Barrier) takeBlocker() chan bool {
 func (bar *Barrier) tryDiscardBlocker() (success bool) {
 	bar.mutex.Lock()
 	success = false
-	areBlockersAlreadyTaken := bar.awaitingWorkersCount == 0
-	if !areBlockersAlreadyTaken {
+	blockersAlreadyTaken := bar.awaitingWorkersCount == 0
+	if !blockersAlreadyTaken {
 		bar.awaitingWorkersCount--
 		success = true
 	}

@@ -11,41 +11,46 @@ type Barrier struct {
 	capacity             int
 	blocker              chan bool
 	awaitingWorkersCount int
+	awaitingGroupId      int
 	mutex                sync.Mutex
 }
 
-func (barier *Barrier) takeBlocker() chan bool {
+func (barier *Barrier) takeBlocker() (blocker chan bool, discardToken int) {
 	barier.mutex.Lock()
-	blocker := barier.blocker
+	defer barier.mutex.Unlock()
+
+	blocker = barier.blocker
+	discardToken = barier.awaitingGroupId
+
 	barier.awaitingWorkersCount++
 	if barier.awaitingWorkersCount == barier.capacity {
 		close(barier.blocker)
+		barier.awaitingGroupId++
 		barier.awaitingWorkersCount = 0
 		barier.blocker = make(chan bool)
 	}
-	barier.mutex.Unlock()
-	return blocker
-}
-
-func (barier *Barrier) tryDiscardBlocker() (success bool) {
-	barier.mutex.Lock()
-	success = false
-	blockersAlreadyTaken := barier.awaitingWorkersCount == 0
-	if !blockersAlreadyTaken {
-		barier.awaitingWorkersCount--
-		success = true
-	}
-	barier.mutex.Unlock()
 	return
 }
 
+func (barier *Barrier) tryDiscardBlocker(discardToken int) (success bool) {
+	barier.mutex.Lock()
+	defer barier.mutex.Unlock()
+
+	blockersAlreadyTaken := barier.awaitingGroupId != discardToken
+	if !blockersAlreadyTaken {
+		barier.awaitingWorkersCount--
+		return true
+	}
+	return false
+}
+
 func (bar *Barrier) TryWait(timeout time.Duration) (success bool) {
-	blocker := bar.takeBlocker()
+	blocker, discardToken := bar.takeBlocker()
 	select {
 	case <-blocker:
 		return true
 	case <-time.After(timeout):
-		discardSuccess := bar.tryDiscardBlocker()
+		discardSuccess := bar.tryDiscardBlocker(discardToken)
 		return !discardSuccess
 	}
 }
@@ -75,7 +80,6 @@ func runWorker(barrier *Barrier, id int, timeout time.Duration) {
 
 func main() {
 	fmt.Println("GO!")
-
 	barierCpacity := 3
 	workersCount := 14
 	timeout := time.Second * 3

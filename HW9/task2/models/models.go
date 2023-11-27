@@ -71,3 +71,15 @@ func (school School) GetClassByName(name string) (class Class, success bool) {
 	}
 	return Class{}, false
 }
+
+func (school School) GetTeachersStudentById(teacher Teacher, studentId int) (student Student, found bool) {
+	for _, c := range school.Classes {
+		if c.Teacher.Name == teacher.Name {
+			student, found = c.GetStudentById(studentId)
+			if found {
+				return student, found
+			}
+		}
+	}
+	return Student{}, false
+}

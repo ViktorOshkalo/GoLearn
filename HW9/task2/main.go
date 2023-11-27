@@ -125,15 +125,13 @@ func AuthorizeMiddleware(next http.Handler) http.Handler {
 
 		user, ok := r.Context().Value("user").(models.User)
 		if !ok {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, "User not provided")
+			http.Error(w, "User not provided", http.StatusInternalServerError)
 			return
 		}
 
 		teacher, ok := teachers[user.Id]
 		if !ok {
-			fmt.Fprintf(w, "User is not teacher")
-			w.WriteHeader(http.StatusOK)
+			http.Error(w, "User is not teacher", http.StatusBadRequest)
 			return
 		}
 
@@ -141,14 +139,14 @@ func AuthorizeMiddleware(next http.Handler) http.Handler {
 		className := vars["className"]
 		class, ok := school.GetClassByName(className)
 		if !ok {
-			fmt.Fprintf(w, "Class not found: %s", className)
-			w.WriteHeader(http.StatusOK)
+			errMessage := fmt.Sprintf("Class not found: %s", className)
+			http.Error(w, errMessage, http.StatusBadRequest)
 			return
 		}
 
 		if teacher.Name != class.Teacher.Name {
-			fmt.Fprintf(w, "Teacher are not allowed to see info for provided class: %s", className)
-			w.WriteHeader(http.StatusOK)
+			errMessage := fmt.Sprintf("Teacher are not allowed to see info for provided class: %s", className)
+			http.Error(w, errMessage, http.StatusBadRequest)
 			return
 		}
 
@@ -162,38 +160,27 @@ func AuthorizeStudentMiddleware(next http.Handler) http.Handler {
 
 		user, ok := r.Context().Value("user").(models.User)
 		if !ok {
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, "User is not provided", http.StatusInternalServerError)
 			return
 		}
 
 		teacher, ok := teachers[user.Id]
 		if !ok {
-			fmt.Fprintf(w, "User is not teacher")
-			w.WriteHeader(http.StatusOK)
+			http.Error(w, "User is not teacher", http.StatusBadRequest)
 			return
 		}
 
 		vars := mux.Vars(r)
 		studentId, err := strconv.Atoi(vars["id"])
 		if err != nil {
-			fmt.Fprintf(w, "Incorrect student id, err: %s", err)
-			w.WriteHeader(http.StatusBadRequest)
+			errMessage := fmt.Sprintf("Incorrect student id, err: %s", err)
+			http.Error(w, errMessage, http.StatusBadRequest)
+			return
 		}
 
-		var student models.Student
-		var found bool
-		for _, c := range school.Classes {
-			if c.Teacher.Name == teacher.Name {
-				student, found = c.GetStudentById(studentId)
-				if found {
-					break
-				}
-			}
-		}
-
+		student, found := school.GetTeachersStudentById(teacher, studentId)
 		if !found {
-			fmt.Fprintf(w, "Student is not belong to teacher or not found")
-			w.WriteHeader(http.StatusOK)
+			http.Error(w, "Student not belongs to teacher or not found", http.StatusBadRequest)
 			return
 		}
 
@@ -211,7 +198,6 @@ func ClassHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(class)
-	w.WriteHeader(http.StatusOK)
 }
 
 func StudentHandler(w http.ResponseWriter, r *http.Request) {
@@ -223,7 +209,6 @@ func StudentHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(student)
-	w.WriteHeader(http.StatusOK)
 }
 
 func main() {

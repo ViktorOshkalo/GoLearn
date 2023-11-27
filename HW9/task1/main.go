@@ -22,14 +22,12 @@ var tasks = []Task{
 }
 
 func HomeHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, "Hello!")
 }
 
 func TasksHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(tasks)
-	w.WriteHeader(http.StatusOK)
 }
 
 func TasksByDateHandler(w http.ResponseWriter, r *http.Request) {
@@ -38,8 +36,7 @@ func TasksByDateHandler(w http.ResponseWriter, r *http.Request) {
 
 	dateInput, err := time.Parse(time.DateOnly, date)
 	if err != nil {
-		fmt.Fprintf(w, "Incorrect date, err: %s", err)
-		w.WriteHeader(http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("Incorrect date, err: %s", err), http.StatusBadRequest)
 		return
 	}
 
@@ -57,8 +54,6 @@ func TasksByDateHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		fmt.Fprintf(w, "Tasks not found")
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func main() {

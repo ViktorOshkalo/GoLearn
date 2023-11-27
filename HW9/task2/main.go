@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"main/models"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 )
 
 var users map[string]models.User
 var teachers map[int]models.Teacher
+var students map[int]models.Student
 var school models.School
 
 func initData() {
@@ -29,9 +31,21 @@ func initData() {
 	}
 
 	teachers = map[int]models.Teacher{
-		user1.Id: models.Teacher{Name: "2Pac"},
-		user2.Id: models.Teacher{Name: "Jay-Z"},
-		user3.Id: models.Teacher{Name: "Snoop Dogg"},
+		user1.Id: models.Teacher{Name: "2Pac", UserId: user1.Id},
+		user2.Id: models.Teacher{Name: "Jay-Z", UserId: user2.Id},
+		user3.Id: models.Teacher{Name: "Snoop Dogg", UserId: user3.Id},
+	}
+
+	students := map[int]models.Student{
+		1: {Name: "Rabbit", Rates: map[string]int{"Poetry": 12, "Music": 12}, Id: 1},
+		2: {Name: "Wink", Rates: map[string]int{"Poetry": 5, "Music": 6}, Id: 2},
+		3: {Name: "Cheddar", Rates: map[string]int{"Poetry": 9, "Music": 12}, Id: 3},
+		4: {Name: "Paul", Rates: map[string]int{"Poetry": 9, "Music": 8}, Id: 4},
+		5: {Name: "Alex", Rates: map[string]int{"Poetry": 10, "Music": 10}, Id: 5},
+		6: {Name: "Papa", Rates: map[string]int{"Poetry": 9, "Music": 11}, Id: 6},
+		7: {Name: "Lotto", Rates: map[string]int{"Poetry": 5, "Music": 4}, Id: 7},
+		8: {Name: "Lyckety-Splyt", Rates: map[string]int{"Poetry": 7, "Music": 10}, Id: 8},
+		9: {Name: "Future", Rates: map[string]int{"Poetry": 7, "Music": 9}, Id: 9},
 	}
 
 	school = models.School{
@@ -41,27 +55,27 @@ func initData() {
 				Name:    "1A",
 				Teacher: teachers[user1.Id],
 				Students: []models.Student{
-					{Name: "Rabbit", Rates: map[string]int{"Poetry": 12, "Music": 12}},
-					{Name: "Wink", Rates: map[string]int{"Poetry": 5, "Music": 6}},
-					{Name: "Cheddar", Rates: map[string]int{"Poetry": 9, "Music": 12}},
+					students[1],
+					students[2],
+					students[3],
 				},
 			},
 			{
 				Name:    "1B",
 				Teacher: teachers[user2.Id],
 				Students: []models.Student{
-					{Name: "Paul", Rates: map[string]int{"Poetry": 9, "Music": 8}},
-					{Name: "Alex", Rates: map[string]int{"Poetry": 10, "Music": 10}},
-					{Name: "Papa", Rates: map[string]int{"Poetry": 9, "Music": 11}},
+					students[4],
+					students[5],
+					students[6],
 				},
 			},
 			{
 				Name:    "1C",
 				Teacher: teachers[user3.Id],
 				Students: []models.Student{
-					{Name: "Lotto", Rates: map[string]int{"Poetry": 5, "Music": 4}},
-					{Name: "Lyckety-Splyt", Rates: map[string]int{"Poetry": 7, "Music": 10}},
-					{Name: "Future", Rates: map[string]int{"Poetry": 7, "Music": 9}},
+					students[7],
+					students[8],
+					students[9],
 				},
 			},
 		},
@@ -138,23 +152,77 @@ func AuthorizeMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		next.ServeHTTP(w, r)
+		ctxWithClass := context.WithValue(r.Context(), "class", class)
+		next.ServeHTTP(w, r.WithContext(ctxWithClass))
+	})
+}
+
+func AuthorizeStudentMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		user, ok := r.Context().Value("user").(models.User)
+		if !ok {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		teacher, ok := teachers[user.Id]
+		if !ok {
+			fmt.Fprintf(w, "User is not teacher")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		vars := mux.Vars(r)
+		studentId, err := strconv.Atoi(vars["id"])
+		if err != nil {
+			fmt.Fprintf(w, "Incorrect student id, err: %s", err)
+			w.WriteHeader(http.StatusBadRequest)
+		}
+
+		var student models.Student
+		var found bool
+		for _, c := range school.Classes {
+			if c.Teacher.Name == teacher.Name {
+				student, found = c.GetStudentById(studentId)
+				if found {
+					break
+				}
+			}
+		}
+
+		if !found {
+			fmt.Fprintf(w, "Student is not belong to teacher or not found")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		ctxWithStudent := context.WithValue(r.Context(), "student", student)
+		next.ServeHTTP(w, r.WithContext(ctxWithStudent))
 	})
 }
 
 func ClassHandler(w http.ResponseWriter, r *http.Request) {
-
-	vars := mux.Vars(r)
-	className := vars["className"]
-	class, ok := school.GetClassByName(className)
+	class, ok := r.Context().Value("class").(models.Class)
 	if !ok {
-		fmt.Fprintf(w, "Class not found: %s", className)
-		w.WriteHeader(http.StatusOK)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(class)
+	w.WriteHeader(http.StatusOK)
+}
+
+func StudentHandler(w http.ResponseWriter, r *http.Request) {
+	student, ok := r.Context().Value("student").(models.Student)
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(student)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -167,10 +235,17 @@ func main() {
 	rClass.Use(AuthenticateMiddleware)
 	rClass.Use(AuthorizeMiddleware)
 
+	rStudent := mux.NewRouter()
+	rStudent.HandleFunc("/student/{id}", StudentHandler)
+	rStudent.Use(AuthenticateMiddleware)
+	rStudent.Use(AuthorizeStudentMiddleware)
+
 	r := mux.NewRouter()
 	r.HandleFunc("/", HomeHandler)
 	r.HandleFunc("/school", SchoolHandler)
-	r.PathPrefix("/").Handler(rClass)
+
+	r.PathPrefix("/class").Handler(rClass)
+	r.PathPrefix("/student").Handler(rStudent)
 
 	if err := http.ListenAndServe(":8080", r); err != nil {
 		fmt.Println("Error: ", err)

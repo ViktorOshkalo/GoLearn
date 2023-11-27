@@ -7,11 +7,13 @@ type User struct {
 }
 
 type Teacher struct {
-	Name string
+	Name   string
+	UserId int
 }
 
 type Student struct {
 	Name  string
+	Id    int
 	Rates map[string]int
 }
 
@@ -19,6 +21,15 @@ type Class struct {
 	Name     string
 	Teacher  Teacher
 	Students []Student
+}
+
+func (class Class) GetStudentById(id int) (student Student, success bool) {
+	for _, s := range class.Students {
+		if s.Id == id {
+			return s, true
+		}
+	}
+	return Student{}, false
 }
 
 type ClassPreview struct {
@@ -53,11 +64,10 @@ func (school School) GetPreview() SchoolPreview {
 }
 
 func (school School) GetClassByName(name string) (class Class, success bool) {
-	success = false
 	for _, c := range school.Classes {
 		if c.Name == name {
 			return c, true
 		}
 	}
-	return
+	return Class{}, false
 }

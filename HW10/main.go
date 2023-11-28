@@ -43,7 +43,7 @@ func WeatherHandler(w http.ResponseWriter, r *http.Request) {
 
 	weather, err := weatherClient.GetWeather(city)
 	if err != nil {
-		http.Error(w, "Uneble to get weather", http.StatusInternalServerError)
+		http.Error(w, "Unable to get weather", http.StatusInternalServerError)
 		return
 	}
 
@@ -74,7 +74,7 @@ func TranslateHandler(w http.ResponseWriter, r *http.Request) {
 
 	translation, err := translateClient.Translate(requestParams.FormLang, requestParams.ToLang, requestParams.Text)
 	if err != nil {
-		http.Error(w, "Uneble to get translation", http.StatusInternalServerError)
+		http.Error(w, "Unable to get translation", http.StatusInternalServerError)
 		return
 	}
 

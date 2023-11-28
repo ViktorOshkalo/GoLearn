@@ -17,7 +17,7 @@ var translateClient translator.TranslatorClient
 
 func init() {
 	// weather
-	apiKey, err := readApiKey()
+	apiKey, err := readFile("weather_apikey.txt")
 	if err != nil {
 		panic(err)
 	}
@@ -29,8 +29,8 @@ func init() {
 	translateClient = translator.TranslatorClient{}
 }
 
-func readApiKey() (string, error) {
-	content, err := os.ReadFile("weather_apikey.txt")
+func readFile(path string) (string, error) {
+	content, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}

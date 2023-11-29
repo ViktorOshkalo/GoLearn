@@ -52,7 +52,7 @@ func WeatherHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type TranslateRequestParams struct {
-	FormLang string `json:"from_lang"`
+	FromLang string `json:"from_lang"`
 	ToLang   string `json:"to_lang"`
 	Text     string `json:"text"`
 }
@@ -72,7 +72,7 @@ func TranslateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	translation, err := translateClient.Translate(requestParams.FormLang, requestParams.ToLang, requestParams.Text)
+	translation, err := translateClient.Translate(requestParams.FromLang, requestParams.ToLang, requestParams.Text)
 	if err != nil {
 		http.Error(w, "Unable to get translation", http.StatusInternalServerError)
 		return

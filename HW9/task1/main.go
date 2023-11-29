@@ -41,19 +41,15 @@ func TasksByDateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Println("Date ", dateInput)
-	var tasksFiltered []Task
+	tasksFiltered := []Task{}
 	for _, task := range tasks {
 		if task.Date == dateInput {
 			tasksFiltered = append(tasksFiltered, task)
 		}
 	}
 
-	if len(tasksFiltered) > 0 {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(tasksFiltered)
-	} else {
-		fmt.Fprintf(w, "Tasks not found")
-	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(tasksFiltered)
 }
 
 func main() {

@@ -93,25 +93,24 @@ func SchoolHandler(w http.ResponseWriter, r *http.Request) {
 	schoolPreview := school.GetPreview()
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(schoolPreview)
-	w.WriteHeader(http.StatusOK)
 }
 
 func AuthenticateMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		username, password, success := r.BasicAuth()
 		if !success {
-			w.WriteHeader(http.StatusForbidden)
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
 		user, found := users[username]
 		if !found {
-			w.WriteHeader(http.StatusForbidden)
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
 		if user.Password != password {
-			w.WriteHeader(http.StatusForbidden)
+			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
@@ -131,7 +130,7 @@ func AuthorizeMiddleware(next http.Handler) http.Handler {
 
 		teacher, ok := teachers[user.Id]
 		if !ok {
-			http.Error(w, "User is not teacher", http.StatusBadRequest)
+			http.Error(w, "User is not teacher", http.StatusUnauthorized)
 			return
 		}
 
@@ -140,13 +139,13 @@ func AuthorizeMiddleware(next http.Handler) http.Handler {
 		class, ok := school.GetClassByName(className)
 		if !ok {
 			errMessage := fmt.Sprintf("Class not found: %s", className)
-			http.Error(w, errMessage, http.StatusBadRequest)
+			http.Error(w, errMessage, http.StatusUnauthorized)
 			return
 		}
 
 		if teacher.Name != class.Teacher.Name {
 			errMessage := fmt.Sprintf("Teacher are not allowed to see info for provided class: %s", className)
-			http.Error(w, errMessage, http.StatusBadRequest)
+			http.Error(w, errMessage, http.StatusUnauthorized)
 			return
 		}
 
@@ -166,7 +165,7 @@ func AuthorizeStudentMiddleware(next http.Handler) http.Handler {
 
 		teacher, ok := teachers[user.Id]
 		if !ok {
-			http.Error(w, "User is not teacher", http.StatusBadRequest)
+			http.Error(w, "User is not teacher", http.StatusUnauthorized)
 			return
 		}
 
@@ -180,7 +179,7 @@ func AuthorizeStudentMiddleware(next http.Handler) http.Handler {
 
 		student, found := school.GetTeachersStudentById(teacher, studentId)
 		if !found {
-			http.Error(w, "Student not belongs to teacher or not found", http.StatusBadRequest)
+			http.Error(w, "Student not belongs to teacher or not found", http.StatusUnauthorized)
 			return
 		}
 

@@ -64,7 +64,7 @@ func ReadFileByLineBatches(fileName string, linesBatchSize int) (<-chan string, 
 	out := make(chan string)
 	file, err := os.Open(fileName)
 	if err != nil {
-		return out, nil
+		return out, err
 	}
 
 	go func() {

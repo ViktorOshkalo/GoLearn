@@ -19,17 +19,13 @@ func main() {
 
 	rexp := regexp.MustCompile(`(\+?(?P<code_country>\d{2})[. -]?)?\(?(?P<code_operator>\d{3})\)?[. -]?(?P<number_p1>\d{3})[. -]?(?P<number_p2>\d{2})[. -]?(?P<number_p3>\d{2})`)
 
-	res := rexp.FindAllString(string(text), -1)
-	if res == nil {
-		fmt.Println("\nNOT found.")
-	}
-
-	fmt.Println("\nNumbers found:")
-	for _, r := range res {
-		fmt.Println(string(r))
-	}
-
 	matches := rexp.FindAllStringSubmatch(string(text), -1)
+
+	fmt.Println("\nAll findings:")
+	for _, match := range matches {
+		fmt.Println(match[0])
+	}
+
 	var numberInfos []map[string]string
 	for _, match := range matches {
 		subMatchMap := make(map[string]string)

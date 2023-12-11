@@ -2,42 +2,46 @@ package main
 
 import (
 	"fmt"
-	"net/http"
-	"strconv"
-
-	"github.com/gorilla/mux"
 )
 
-func sumHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	num1, _ := strconv.Atoi(vars["num1"])
-	num2, _ := strconv.Atoi(vars["num2"])
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Sum: %d", num1+num2)
+var products = map[int]Product{
+	1: {Id: 1, Name: "Book1", Color: "Blue", Weight: 10},
+	2: {Id: 2, Name: "Book2", Color: "Red", Weight: 20},
+	3: {Id: 3, Name: "Book3", Color: "Orange", Weight: 30},
 }
 
-func divideHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	num1, _ := strconv.Atoi(vars["num1"])
-	num2, _ := strconv.Atoi(vars["num2"])
-	if num2 == 0 {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(w, "Num2 cannot be 0")
-		return
+// model
+type Product struct {
+	Id     int
+	Name   string
+	Color  string
+	Weight float32
+}
+
+func GetProductById(id int) Product {
+	return products[id]
+}
+
+// controller
+func DisplayProduct(id int) {
+	product := GetProductById(id)
+	var productView = GetView(product)
+	fmt.Println(productView)
+}
+
+// view
+func GetView(product Product) string {
+	return fmt.Sprintf("Product: %s, color: %s, weight: %f", product.Name, product.Color, product.Weight)
+}
+
+func PrintProducts(products map[int]Product) {
+	fmt.Println("Your products:")
+	for i := range products {
+		DisplayProduct(i)
 	}
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintf(w, "Sum: %f", float32(num1)/float32(num2))
 }
 
 func main() {
-
-	r := mux.NewRouter()
-	r.HandleFunc("/add/{num1}/{num2}", sumHandler)
-	r.HandleFunc("/divide/{num1}/{num2}", divideHandler)
-	http.Handle("/", r)
-
-	err := http.ListenAndServe(":8080", nil)
-	if err != nil {
-		fmt.Println("error")
-	}
+	fmt.Println("Hello!")
+	PrintProducts(products)
 }

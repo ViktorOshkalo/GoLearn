@@ -47,23 +47,24 @@ func (r *SpaceCleanerStrategy) SetParams() {
 	r.To = " "
 }
 
-// text processor interface
+// text processor
 type ITextProcessor interface {
 	ProcessText(text string) string
 }
 
-// some ITextProcessor implementation
+// some text processor implementation
 type TextProcessor struct {
 }
 
 func (p TextProcessor) ProcessText(text string) string {
+	// doing something
 	return text
 }
 
 // decorator
 type TextProcessorDecorator struct {
 	base     ITextProcessor
-	strategy ITextProcessingStrategy
+	strategy ITextProcessingStrategy // processing logic moved to strategy
 }
 
 func (p TextProcessorDecorator) ProcessText(text string) string {

@@ -9,7 +9,6 @@ import (
 
 // strategy
 type ITextProcessingStrategy interface {
-	SetParams()
 	Process(text string) string
 }
 

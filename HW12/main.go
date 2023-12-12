@@ -7,51 +7,91 @@ import (
 	"strings"
 )
 
-type ITextModifier interface {
-	ModifyText(text string) string
+// strategy
+type ITextProcessingStrategy interface {
+	SetParams()
+	Process(text string) string
 }
 
-// base
-type BaseDecorator struct {
-	TextModifier ITextModifier
+type TextReplacerStrategy struct {
+	From string
+	To   string
 }
 
-func (b BaseDecorator) ModifyText(text string) string {
-	if b.TextModifier != nil {
-		text = b.TextModifier.ModifyText(text)
+func (r TextReplacerStrategy) Process(text string) string {
+	return strings.ReplaceAll(text, r.From, r.To)
+}
+
+func (r *TextReplacerStrategy) SetParams() {
+	var oldWord, newWord string
+	fmt.Println("Enter old word: ")
+	fmt.Scanln(&oldWord)
+	fmt.Println("Enter new word: ")
+	fmt.Scanln(&newWord)
+	r.From = oldWord
+	r.To = newWord
+}
+
+type SpaceCleanerStrategy struct {
+	SelectorRegex string
+	To            string
+}
+
+func (r SpaceCleanerStrategy) Process(text string) string {
+	re := regexp.MustCompile(r.SelectorRegex)
+	return re.ReplaceAllString(text, r.To)
+}
+
+func (r *SpaceCleanerStrategy) SetParams() {
+	r.SelectorRegex = `\s+`
+	r.To = " "
+}
+
+// text processor
+type ITextProcessor interface {
+	ProcessText(text string) string
+}
+
+// some ITextProcessor implementation
+type TextProcessor struct {
+}
+
+func (p TextProcessor) ProcessText(text string) string {
+	return text
+}
+
+// decorator
+type TextProcessorDecorator struct {
+	base     ITextProcessor
+	strategy ITextProcessingStrategy
+}
+
+func (p TextProcessorDecorator) ProcessText(text string) string {
+	if p.base != nil {
+		text = p.base.ProcessText(text)
 	}
-	return text
+	return p.strategy.Process(text)
 }
 
-// space cleaner
-type SpaceCleanerDecorator struct {
-	BaseDecorator
-}
-
-func (w SpaceCleanerDecorator) ModifyText(text string) string {
-	text = w.BaseDecorator.ModifyText(text)
-	re := regexp.MustCompile(`\s+`)
-	text = re.ReplaceAllString(text, " ")
-	return text
-}
-
-// word replacer
-type WordReplacerDecorator struct {
-	BaseDecorator
-	OldWord string
-	NewWord string
-}
-
-func (w WordReplacerDecorator) ModifyText(text string) string {
-	text = w.BaseDecorator.ModifyText(text)
-	text = strings.ReplaceAll(text, w.OldWord, w.NewWord)
-	return text
+func GetNextTextProcessor(command string, baseProcessor ITextProcessor) (ITextProcessor, error) {
+	switch command {
+	case "space":
+		strategy := SpaceCleanerStrategy{}
+		strategy.SetParams()
+		return TextProcessorDecorator{base: baseProcessor, strategy: &strategy}, nil
+	case "word":
+		strategy := TextReplacerStrategy{}
+		strategy.SetParams()
+		return TextProcessorDecorator{base: baseProcessor, strategy: &strategy}, nil
+	default:
+		return nil, fmt.Errorf("unknown command: %s", command)
+	}
 }
 
 var commands map[string]string = map[string]string{
 	"space": "add space cleaner",
 	"word":  "add word replacer",
-	"done":  "start text modifiing",
+	"done":  "start text modifying",
 }
 
 func printCommands() {
@@ -71,31 +111,24 @@ func main() {
 	fmt.Printf("\nEnter a commands to build text modifier.\n")
 	printCommands()
 
-	var worker ITextModifier = BaseDecorator{TextModifier: nil}
+	var processor ITextProcessor = TextProcessor{}
 	for {
 		fmt.Println("\nEnter command: ")
 		var command string
 		fmt.Scanln(&command)
 
-		switch command {
-		case "space":
-			worker = SpaceCleanerDecorator{BaseDecorator: BaseDecorator{TextModifier: worker}}
-			fmt.Println("Space cleaner added")
-		case "word":
-			var oldWord, newWord string
-			fmt.Println("Enter old word: ")
-			fmt.Scanln(&oldWord)
-			fmt.Println("Enter new word: ")
-			fmt.Scanln(&newWord)
-			worker = WordReplacerDecorator{BaseDecorator: BaseDecorator{TextModifier: worker}, OldWord: oldWord, NewWord: newWord}
-			fmt.Println("Word replacer added")
-		case "done":
-			text = worker.ModifyText(text)
+		if command == "done" {
+			text = processor.ProcessText(text)
 			fmt.Println("Modified text:")
 			fmt.Println(text)
 			return
-		default:
-			fmt.Println("Unknown command")
+		}
+
+		var err error
+		processor, err = GetNextTextProcessor(command, processor)
+		if err != nil {
+			fmt.Println(err)
+			continue
 		}
 	}
 }

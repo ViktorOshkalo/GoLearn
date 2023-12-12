@@ -21,7 +21,7 @@ func (r TextReplacerStrategy) Process(text string) string {
 	return strings.ReplaceAll(text, r.From, r.To)
 }
 
-func (r *TextReplacerStrategy) SetParams() {
+func (r *TextReplacerStrategy) InitUserParams() {
 	var oldWord, newWord string
 	fmt.Println("Enter old word: ")
 	fmt.Scanln(&oldWord)
@@ -41,7 +41,7 @@ func (r SpaceCleanerStrategy) Process(text string) string {
 	return re.ReplaceAllString(text, r.To)
 }
 
-func (r *SpaceCleanerStrategy) SetParams() {
+func (r *SpaceCleanerStrategy) InitParams() {
 	r.SelectorRegex = `\s+`
 	r.To = " "
 }
@@ -63,13 +63,14 @@ func (p TextProcessor) ProcessText(text string) string {
 // decorator
 type TextProcessorDecorator struct {
 	base     ITextProcessor
-	strategy ITextProcessingStrategy // processing logic moved to strategy
+	strategy ITextProcessingStrategy // decorator processing logic moved to strategy
 }
 
 func (p TextProcessorDecorator) ProcessText(text string) string {
-	if p.base != nil {
-		text = p.base.ProcessText(text)
+	if p.base == nil {
+		panic("processor base is not set")
 	}
+	text = p.base.ProcessText(text)
 	return p.strategy.Process(text)
 }
 
@@ -77,11 +78,11 @@ func GetNextTextProcessor(command string, baseProcessor ITextProcessor) (ITextPr
 	switch command {
 	case "space":
 		strategy := SpaceCleanerStrategy{}
-		strategy.SetParams()
+		strategy.InitParams()
 		return TextProcessorDecorator{base: baseProcessor, strategy: &strategy}, nil
 	case "word":
 		strategy := TextReplacerStrategy{}
-		strategy.SetParams()
+		strategy.InitUserParams()
 		return TextProcessorDecorator{base: baseProcessor, strategy: &strategy}, nil
 	default:
 		return nil, fmt.Errorf("unknown command: %s", command)
@@ -124,12 +125,13 @@ func main() {
 			return
 		}
 
-		var err error
-		processor, err = GetNextTextProcessor(command, processor)
+		processorNext, err := GetNextTextProcessor(command, processor)
 		if err != nil {
 			fmt.Println(err)
 			continue
 		}
+
+		processor = processorNext
 	}
 }
 

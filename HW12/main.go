@@ -47,7 +47,7 @@ func (r *SpaceCleanerStrategy) SetParams() {
 	r.To = " "
 }
 
-// text processor
+// text processor interface
 type ITextProcessor interface {
 	ProcessText(text string) string
 }
@@ -108,7 +108,7 @@ func main() {
 	fmt.Println("Original Text:")
 	fmt.Println(text)
 
-	fmt.Printf("\nEnter a commands to build text modifier.\n")
+	fmt.Printf("\nEnter a commands to build text processor.\n")
 	printCommands()
 
 	var processor ITextProcessor = TextProcessor{}

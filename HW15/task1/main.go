@@ -3,68 +3,12 @@ package main
 import (
 	"fmt"
 	"log"
+	"main/pubsub"
 
 	"github.com/fsnotify/fsnotify"
 )
 
-type Subscriber interface {
-	OnMessage(message string)
-}
-
-type Topic struct {
-	subscribers []Subscriber
-}
-
-func (tp *Topic) AddSubscriber(subscriber Subscriber) {
-	tp.subscribers = append(tp.subscribers, subscriber)
-}
-
-func (tp *Topic) RemoveSubscriber(subscriber Subscriber) {
-	substitute := []Subscriber{}
-	for _, s := range tp.subscribers {
-		if subscriber != s {
-			substitute = append(substitute, s)
-		}
-	}
-	tp.subscribers = substitute
-}
-
-func (tp Topic) Notify(message string) {
-	for _, s := range tp.subscribers {
-		s.OnMessage(message)
-	}
-}
-
-type PubSub struct {
-	topics map[string]*Topic
-}
-
-func (pb *PubSub) Subscribe(topicName string, subscriber Subscriber) {
-	topic := pb.topics[topicName]
-	topic.AddSubscriber(subscriber)
-}
-
-func (pb *PubSub) Unsubscribe(topicName string, subscriber Subscriber) {
-	topic := pb.topics[topicName]
-	topic.RemoveSubscriber(subscriber)
-}
-
-func (pb PubSub) Publish(topicName, message string) {
-	topic, exists := pb.topics[topicName]
-	if !exists {
-		fmt.Printf("Topic not exists: %s\n", topicName)
-	}
-	topic.Notify(message)
-}
-
-func getNewPubSub(topicNames ...string) PubSub {
-	ps := PubSub{topics: make(map[string]*Topic)}
-	for _, name := range topicNames {
-		ps.topics[name] = &Topic{}
-	}
-	return ps
-}
-
+// subscriber
 type Printer struct {
 	Name string
 }
@@ -73,9 +17,12 @@ func (p Printer) OnMessage(message string) {
 	fmt.Printf("Printer %s. Message: %s\n", p.Name, message)
 }
 
+var _ pubsub.Subscriber = Printer{}
+
+// publisher
 type FolderWatcher struct {
 	FolderPath string
-	pubsub     PubSub
+	pubsub     pubsub.PubSub
 	topicName  string
 }
 
@@ -115,7 +62,7 @@ func (fw FolderWatcher) Watch() {
 					message = fmt.Sprintf("Chmod:  %s: %s", event.Op, event.Name)
 				}
 
-				fw.pubsub.Publish(fw.topicName, message) // send to pubsub
+				fw.pubsub.Publish(fw.topicName, message) // send message to subscribers
 
 			case err, ok := <-watcher.Errors:
 				if !ok {
@@ -134,7 +81,7 @@ func main() {
 
 	topicName := "watcher"
 	topicName2 := "watcher2"
-	pubsub := getNewPubSub(topicName, topicName2)
+	pubsub := pubsub.GetNewPubSub(topicName, topicName2)
 
 	folderWatcher := FolderWatcher{FolderPath: "test", pubsub: pubsub, topicName: topicName}
 	pubsub.Subscribe(topicName, Printer{Name: "OfficeRoom1"})

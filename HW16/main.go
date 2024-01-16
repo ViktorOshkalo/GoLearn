@@ -7,8 +7,6 @@ import (
 	repo "main/repositories"
 
 	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
-	_ "github.com/lib/pq"
 )
 
 func main() {

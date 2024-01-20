@@ -1,0 +1,136 @@
+package repositories
+
+import (
+	models "main/models"
+)
+
+func InsertProduct(product models.Product) (*int64, error) {
+	return ExecuteTransactWithResult[int64](func(tx IDbExecutable) (*int64, error) {
+		var res int64 = 0
+
+		query := "INSERT INTO products (category_id, name, description, created) VALUES (?, ?, ?, UTC_TIMESTAMP())"
+
+		result, err := tx.Exec(query, product.CategoryId, product.Name, product.Description)
+		if err != nil {
+			return &res, err
+		}
+
+		productId, err := result.LastInsertId()
+		if err != nil {
+			return &res, err
+		}
+
+		// insert sku
+		for _, sku := range product.Skus {
+			sku.ProductId = productId
+			skuId, err := insertSku(tx, sku)
+			if err != nil {
+				return &res, err
+			}
+
+			// insert attributes
+			for _, attr := range sku.Attributes {
+				attr.SkuId = *skuId
+				err := insertAttribute(tx, attr)
+				if err != nil {
+					return &res, err
+				}
+			}
+		}
+
+		res = productId
+		return &res, nil
+	})
+}
+
+func GetProductById(id int64) (*models.Product, error) {
+	return ExecuteWithResult[models.Product](func(db IDbExecutable) (*models.Product, error) {
+		query := `
+		SELECT
+			p.id
+			, p.category_id
+			, p.name
+			, p.description
+			, p.created
+			, p.updated
+			, p.archived
+			, sku.id
+			, sku.product_id
+			, sku.amount
+			, sku.price
+			, sku.unit
+			, sku.created
+			, sku.updated
+			, sku.archived
+			, attr.sku_id
+			, attr.key
+			, attr.value
+			, attr.value_type
+		FROM products p 
+			LEFT JOIN skus sku ON 
+				sku.product_id = p.id
+			LEFT JOIN attributes attr ON
+				attr.sku_id = sku.id 
+		WHERE p.id = ?`
+
+		rows, err := db.Query(query, id)
+		if err != nil {
+			return nil, err
+		}
+
+		// result object
+		var product models.Product
+
+		// sku and attributers store
+		var skus map[int64]models.Sku = make(map[int64]models.Sku)
+		var attributes map[int64][]models.Attribute = make(map[int64][]models.Attribute)
+
+		// datetime conversion vars
+		var createdProduct []uint8
+		var createdSku []uint8
+
+		for rows.Next() {
+			var sku models.Sku
+			var attr models.Attribute
+
+			err = rows.Scan(
+				&product.Id,
+				&product.CategoryId,
+				&product.Name,
+				&product.Description,
+				&createdProduct,
+				&product.Updated,
+				&product.Archived,
+				&sku.Id,
+				&sku.ProductId,
+				&sku.Amount,
+				&sku.Price,
+				&sku.Unit,
+				&createdSku,
+				&sku.Updated,
+				&sku.Archived,
+				&attr.SkuId,
+				&attr.Key,
+				&attr.Value,
+				&attr.ValueType,
+			)
+			if err != nil {
+				return nil, err
+			}
+
+			// store skus
+			skus[sku.Id] = sku
+
+			// store attributes
+			attributes[attr.SkuId] = append(attributes[attr.SkuId], attr)
+		}
+
+		// add attributes to sku, add sku to product
+		for _, s := range skus {
+			s.Attributes = append(s.Attributes, attributes[s.Id]...)
+			product.Skus = append(product.Skus, s)
+		}
+
+		return &product, nil
+	})
+}

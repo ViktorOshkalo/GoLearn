@@ -1,15 +1,13 @@
-package main
+package repositories
 
 import (
 	"fmt"
 	"log"
 	"main/configuration"
-	"main/dbStore"
 	m "main/models"
 )
 
-func main() {
-	fmt.Println("Yoooo G")
+func RunDbTestCase() {
 
 	product := m.Product{
 		CategoryId:  1,
@@ -37,14 +35,14 @@ func main() {
 		},
 	}
 
-	dbStore := dbStore.GetNewDbStore(configuration.ConnectionString)
+	repo := ProductRepository{BaseRepository: BaseRepository{ConnectionString: configuration.ConnectionString}}
 
-	productId, err := dbStore.Products.InsertProduct(product)
+	productId, err := repo.InsertProduct(product)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	productRead, err := dbStore.Products.GetProductById(productId)
+	productRead, err := repo.GetProductById(productId)
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -4,47 +4,48 @@ import (
 	models "main/models"
 )
 
-func InsertProduct(product models.Product) (*int64, error) {
-	return ExecuteTransactWithResult[int64](func(tx IDbExecutable) (*int64, error) {
-		var res int64 = 0
+type ProductRepository struct {
+	BaseRepository
+}
 
+func (pr ProductRepository) InsertProduct(product models.Product) (int64, error) {
+	return ExecuteTransactWithResult[int64](pr.BaseRepository, func(tx IDbExecutable) (int64, error) {
 		query := "INSERT INTO products (category_id, name, description, created) VALUES (?, ?, ?, UTC_TIMESTAMP())"
 
 		result, err := tx.Exec(query, product.CategoryId, product.Name, product.Description)
 		if err != nil {
-			return &res, err
+			return 0, err
 		}
 
 		productId, err := result.LastInsertId()
 		if err != nil {
-			return &res, err
+			return 0, err
 		}
 
 		// insert sku
 		for _, sku := range product.Skus {
 			sku.ProductId = productId
-			skuId, err := insertSku(tx, sku)
+			skuId, err := insertSkuWithDbConn(tx, sku)
 			if err != nil {
-				return &res, err
+				return 0, err
 			}
 
 			// insert attributes
 			for _, attr := range sku.Attributes {
-				attr.SkuId = *skuId
-				err := insertAttribute(tx, attr)
+				attr.SkuId = skuId
+				err := insertAttributeWithDbConn(tx, attr)
 				if err != nil {
-					return &res, err
+					return 0, err
 				}
 			}
 		}
 
-		res = productId
-		return &res, nil
+		return productId, nil
 	})
 }
 
-func GetProductById(id int64) (*models.Product, error) {
-	return ExecuteWithResult[models.Product](func(db IDbExecutable) (*models.Product, error) {
+func (pr ProductRepository) GetProductById(id int64) (*models.Product, error) {
+	return ExecuteWithResult[*models.Product](pr.BaseRepository, func(db IDbExecutable) (*models.Product, error) {
 		query := `
 		SELECT
 			p.id

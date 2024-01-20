@@ -6,20 +6,24 @@ import (
 	models "main/models"
 )
 
-func insertAttribute(db IDbExecutable, attr models.Attribute) error {
+type AttributeRepository struct {
+	BaseRepository
+}
+
+func insertAttributeWithDbConn(db IDbExecutable, attr models.Attribute) error {
 	query := "INSERT INTO attributes (`sku_id`, `key`, `value`, `value_type`) VALUES (?, ?, ?, ?)"
 	_, err := db.Exec(query, attr.SkuId, attr.Key, attr.Value, attr.ValueType)
 	return err
 }
 
-func InsertAttribute(attr models.Attribute) error {
-	return Execute(func(db IDbExecutable) error {
-		return insertAttribute(db, attr)
+func (ar AttributeRepository) InsertAttribute(attr models.Attribute) error {
+	return Execute(ar.BaseRepository, func(db IDbExecutable) error {
+		return insertAttributeWithDbConn(db, attr)
 	})
 }
 
-func GetAttributesBySkuId(id int64) (*[]models.Attribute, error) {
-	return ExecuteWithResult[[]models.Attribute](func(db IDbExecutable) (*[]models.Attribute, error) {
+func (ar AttributeRepository) GetAttributesBySkuId(id int64) ([]models.Attribute, error) {
+	return ExecuteWithResult[[]models.Attribute](ar.BaseRepository, func(db IDbExecutable) ([]models.Attribute, error) {
 		query := `
 			SELECT
 				a.sku_id
@@ -64,6 +68,6 @@ func GetAttributesBySkuId(id int64) (*[]models.Attribute, error) {
 			return nil, err
 		}
 
-		return &attributes, nil
+		return attributes, nil
 	})
 }

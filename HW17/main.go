@@ -35,12 +35,21 @@ func AuthenticateMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func GetAllProductsHandler(w http.ResponseWriter, r *http.Request) {
+	products, err := db.Products.GetAllProducts()
+	if err != nil {
+		http.Error(w, "unable to get products", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(products)
+}
+
 func GetProductHandler(w http.ResponseWriter, r *http.Request) {
-	// Extract the value of the "id" parameter from the URL
 	vars := mux.Vars(r)
 	productIDStr := vars["id"]
 
-	// Convert productIDStr to int64
 	productID, err := strconv.ParseInt(productIDStr, 10, 64)
 	if err != nil {
 		http.Error(w, "invalid product id", http.StatusBadRequest)
@@ -59,12 +68,13 @@ func GetProductHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	fmt.Println("YooG")
+	fmt.Println("Yoo G")
 
 	db = dbStore.GetNewDbStore(conf.ConnectionString)
 
 	router := mux.NewRouter()
-	router.HandleFunc("/product/{id:[0-9]+}", GetProductHandler).Methods("GET")
+	router.HandleFunc("/products", GetAllProductsHandler).Methods("GET")
+	router.HandleFunc("/products/{id:[0-9]+}", GetProductHandler).Methods("GET")
 	router.Use(AuthenticateMiddleware)
 
 	if err := http.ListenAndServe(":8080", router); err != nil {

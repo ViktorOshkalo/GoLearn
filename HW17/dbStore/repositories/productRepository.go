@@ -83,12 +83,8 @@ func (pr ProductRepository) GetProductById(id int64) (*models.Product, error) {
 		var product models.Product
 
 		// sku and attributers store
-		var skus map[int64]models.Sku = make(map[int64]models.Sku)
-		var attributes map[int64][]models.Attribute = make(map[int64][]models.Attribute)
-
-		// datetime conversion vars
-		var createdProduct []uint8
-		var createdSku []uint8
+		var skus map[int64]models.Sku = make(map[int64]models.Sku)                       // key - skuId, value - sku
+		var attributes map[int64][]models.Attribute = make(map[int64][]models.Attribute) // key - skuId, value - []attribute
 
 		for rows.Next() {
 			var sku models.Sku
@@ -99,7 +95,7 @@ func (pr ProductRepository) GetProductById(id int64) (*models.Product, error) {
 				&product.CategoryId,
 				&product.Name,
 				&product.Description,
-				&createdProduct,
+				&product.Created,
 				&product.Updated,
 				&product.Archived,
 				&sku.Id,
@@ -107,7 +103,7 @@ func (pr ProductRepository) GetProductById(id int64) (*models.Product, error) {
 				&sku.Amount,
 				&sku.Price,
 				&sku.Unit,
-				&createdSku,
+				&sku.Created,
 				&sku.Updated,
 				&sku.Archived,
 				&attr.SkuId,

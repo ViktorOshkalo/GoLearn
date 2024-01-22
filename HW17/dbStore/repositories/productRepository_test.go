@@ -3,7 +3,7 @@ package repositories
 import (
 	"fmt"
 	"main/configuration"
-	m "models"
+	m "main/models"
 	"testing"
 )
 

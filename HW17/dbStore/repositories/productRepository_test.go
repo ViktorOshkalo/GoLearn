@@ -2,12 +2,14 @@ package repositories
 
 import (
 	"fmt"
-	"log"
 	"main/configuration"
-	m "main/models"
+	m "models"
+	"testing"
 )
 
-func RunDbTestCase() {
+func TestProductRepositoryInsert(t *testing.T) {
+
+	fmt.Println("Test running")
 
 	product := m.Product{
 		CategoryId:  1,
@@ -39,13 +41,10 @@ func RunDbTestCase() {
 
 	productId, err := repo.InsertProduct(product)
 	if err != nil {
-		log.Fatal(err)
+		t.Errorf("Unable to save product")
 	}
 
-	productRead, err := repo.GetProductById(productId)
-	if err != nil {
-		log.Fatal(err)
+	if productId == 0 {
+		t.Errorf("Unable to save product")
 	}
-
-	fmt.Println("Product read from db: ", productRead)
 }

@@ -80,6 +80,19 @@ func (pr ProductRepository) InsertProduct(product models.Product) (int64, error)
 	})
 }
 
+func (pr ProductRepository) GetProductsByCatalogIdWithFilter(id int64, filter map[string]string) ([]models.Product, error) {
+	params := make([]any, 0)
+	params = append(params, fmt.Sprint(id))
+
+	query := "WHERE p.catalog_id = ? AND p.archived IS NULL "
+	for attrName, attrVal := range filter {
+		query += " AND EXISTS (SELECT * FROM attributes attrf WHERE attrf.sku_id = sku.id AND attrf.key = ? AND attrf.value = ?)"
+		params = append(params, attrName, attrVal)
+	}
+
+	return pr.getProductsWithCondition(query, params...)
+}
+
 func (pr ProductRepository) GetProductsByCatalogId(id int64) ([]models.Product, error) {
 	return pr.getProductsWithCondition("WHERE p.catalog_id = ? AND p.archived IS NULL", id)
 }

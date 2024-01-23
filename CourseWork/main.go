@@ -69,27 +69,6 @@ func GetProductHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(product)
 }
 
-func GetProductsByCatalogHandler(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	catalogIDStr := vars["id"]
-
-	catalogId, err := strconv.ParseInt(catalogIDStr, 10, 64)
-	if err != nil {
-		http.Error(w, "invalid catalog id", http.StatusBadRequest)
-		return
-	}
-
-	products, err := db.Products.GetProductsByCatalogId(catalogId)
-	if err != nil {
-		errMessage := fmt.Sprintf("unable to get product by catalog id: %d", catalogId)
-		http.Error(w, errMessage, http.StatusBadRequest)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(products)
-}
-
 func main() {
 	fmt.Println("Yoo G")
 
@@ -99,7 +78,7 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/products", GetAllProductsHandler).Methods("GET")
 	router.HandleFunc("/products", productController.AddProductHandler).Methods("POST")
-	router.HandleFunc("/products/catalog/{id:[0-9]+}", GetProductsByCatalogHandler).Methods("GET")
+	router.HandleFunc("/products/catalog/{id:[0-9]+}", productController.GetProductsByCatalogHandler).Methods("GET")
 	router.HandleFunc("/products/{id:[0-9]+}", GetProductHandler).Methods("GET")
 	router.Use(AuthenticateMiddleware)
 

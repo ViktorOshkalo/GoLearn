@@ -14,6 +14,18 @@ var repo ProductRepository = ProductRepository{
 }
 
 // tests
+func Test_GetProductsByCatalogIdWithFilter(t *testing.T) {
+	var id int64 = 1
+	filter := map[string]string{
+		"Color": "Black",
+		"Size":  "M",
+	}
+	products, err := repo.GetProductsByCatalogIdWithFilter(id, filter)
+	if err != nil || products == nil {
+		t.Errorf("unable to get products by catalog id and filter")
+	}
+}
+
 func Test_GetProductsByCatalogId(t *testing.T) {
 	var id int64 = 1
 	products, err := repo.GetProductsByCatalogId(id)

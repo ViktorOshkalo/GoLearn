@@ -3,8 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	dbStore "main/DbStore"
 	conf "main/configuration"
-	"main/dbStore"
+	"main/controllers"
 	"net/http"
 	"strconv"
 
@@ -12,6 +13,7 @@ import (
 )
 
 var db dbStore.DbStore
+var productController controllers.ProductController
 
 func AuthenticateMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -67,13 +69,37 @@ func GetProductHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(product)
 }
 
+func GetProductsByCatalogHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	catalogIDStr := vars["id"]
+
+	catalogId, err := strconv.ParseInt(catalogIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid catalog id", http.StatusBadRequest)
+		return
+	}
+
+	products, err := db.Products.GetProductsByCatalogId(catalogId)
+	if err != nil {
+		errMessage := fmt.Sprintf("unable to get product by catalog id: %d", catalogId)
+		http.Error(w, errMessage, http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(products)
+}
+
 func main() {
 	fmt.Println("Yoo G")
 
 	db = dbStore.GetNewDbStore(conf.ConnectionString)
+	productController = controllers.ProductController{Db: db}
 
 	router := mux.NewRouter()
 	router.HandleFunc("/products", GetAllProductsHandler).Methods("GET")
+	router.HandleFunc("/products", productController.AddProductHandler).Methods("POST")
+	router.HandleFunc("/products/catalog/{id:[0-9]+}", GetProductsByCatalogHandler).Methods("GET")
 	router.HandleFunc("/products/{id:[0-9]+}", GetProductHandler).Methods("GET")
 	router.Use(AuthenticateMiddleware)
 
@@ -81,3 +107,8 @@ func main() {
 		fmt.Println("Error: ", err)
 	}
 }
+
+// {
+// 	"color": "blue"
+// 	"size": "M"
+// }

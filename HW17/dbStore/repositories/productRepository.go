@@ -1,6 +1,8 @@
 package repositories
 
 import (
+	"database/sql"
+	"fmt"
 	models "main/models"
 )
 
@@ -23,18 +25,18 @@ func (pr ProductRepository) ArchiveProduct(id int64) error {
 	})
 }
 
-func (pr ProductRepository) UpdateProduct(pu models.ProductUpdate) error {
+func (pr ProductRepository) UpdateProduct(pu models.Product) error {
 	return Execute(pr.BaseRepository, func(db IDbExecutable) error {
 		query := `
 			UPDATE products
-			SET category_id = ?
+			SET catalog_id = ?
 				, name = ?
 				, description = ?
 				, updated = UTC_TIMESTAMP()
 			WHERE 
 				products.id = ?
 		`
-		_, err := db.Exec(query, pu.CategoryId, pu.Name, pu.Description, pu.Id)
+		_, err := db.Exec(query, pu.CatalogId, pu.Name, pu.Description, pu.Id)
 		if err != nil {
 			return err
 		}
@@ -42,109 +44,11 @@ func (pr ProductRepository) UpdateProduct(pu models.ProductUpdate) error {
 	})
 }
 
-func (pr ProductRepository) GetAllProducts() ([]models.Product, error) {
-	return ExecuteWithResult[[]models.Product](pr.BaseRepository, func(db IDbExecutable) ([]models.Product, error) {
-		query := `
-		SELECT
-			p.id
-			, p.category_id
-			, p.name
-			, p.description
-			, p.created
-			, p.updated
-			, p.archived
-			, sku.id
-			, sku.product_id
-			, sku.amount
-			, sku.price
-			, sku.unit
-			, sku.created
-			, sku.updated
-			, sku.archived
-			, attr.sku_id
-			, attr.key
-			, attr.value
-			, attr.value_type
-		FROM products p 
-			LEFT JOIN skus sku ON 
-				sku.product_id = p.id
-			LEFT JOIN attributes attr ON
-				attr.sku_id = sku.id`
-
-		rows, err := db.Query(query)
-		if err != nil {
-			return nil, err
-		}
-
-		// result object
-		var products map[int64]models.Product = make(map[int64]models.Product) // key - productId, value = product
-
-		// sku and attributers store
-		var skus map[int64]models.Sku = make(map[int64]models.Sku)                       // key - skuId, value - sku
-		var attributes map[int64][]models.Attribute = make(map[int64][]models.Attribute) // key - skuId, value - []attribute
-
-		for rows.Next() {
-			var product models.Product
-			var sku models.Sku
-			var attr models.Attribute
-
-			err = rows.Scan(
-				&product.Id,
-				&product.CategoryId,
-				&product.Name,
-				&product.Description,
-				&product.Created,
-				&product.Updated,
-				&product.Archived,
-				&sku.Id,
-				&sku.ProductId,
-				&sku.Amount,
-				&sku.Price,
-				&sku.Unit,
-				&sku.Created,
-				&sku.Updated,
-				&sku.Archived,
-				&attr.SkuId,
-				&attr.Key,
-				&attr.Value,
-				&attr.ValueType,
-			)
-			if err != nil {
-				return nil, err
-			}
-
-			// store product
-			products[product.Id] = product
-
-			// store skus
-			skus[sku.Id] = sku
-
-			// store attributes
-			attributes[attr.SkuId] = append(attributes[attr.SkuId], attr)
-		}
-
-		// build product objects
-		var output []models.Product
-		for _, p := range products {
-			for _, s := range skus {
-				if s.ProductId != p.Id {
-					continue
-				}
-				s.Attributes = append(s.Attributes, attributes[s.Id]...)
-				p.Skus = append(p.Skus, s)
-			}
-			output = append(output, p)
-		}
-
-		return output, nil
-	})
-}
-
 func (pr ProductRepository) InsertProduct(product models.Product) (int64, error) {
 	return ExecuteTransactWithResult[int64](pr.BaseRepository, func(tx IDbExecutable) (int64, error) {
-		query := "INSERT INTO products (category_id, name, description, created) VALUES (?, ?, ?, UTC_TIMESTAMP())"
+		query := "INSERT INTO products (catalog_id, name, description, created) VALUES (?, ?, ?, UTC_TIMESTAMP())"
 
-		result, err := tx.Exec(query, product.CategoryId, product.Name, product.Description)
+		result, err := tx.Exec(query, product.CatalogId, product.Name, product.Description)
 		if err != nil {
 			return 0, err
 		}
@@ -176,12 +80,31 @@ func (pr ProductRepository) InsertProduct(product models.Product) (int64, error)
 	})
 }
 
+func (pr ProductRepository) GetProductsByCatalogId(id int64) ([]models.Product, error) {
+	return pr.getProductsWithCondition("WHERE p.catalog_id = ? AND p.archived IS NULL", id)
+}
+
+func (pr ProductRepository) GetAllProducts() ([]models.Product, error) {
+	return pr.getProductsWithCondition("WHERE p.archived IS NULL")
+}
+
 func (pr ProductRepository) GetProductById(id int64) (*models.Product, error) {
-	return ExecuteWithResult[*models.Product](pr.BaseRepository, func(db IDbExecutable) (*models.Product, error) {
+	products, err := pr.getProductsWithCondition("WHERE p.id = ?", id)
+	if err != nil {
+		return nil, err
+	}
+	if len(products) != 1 {
+		return nil, fmt.Errorf("unable to get product bu id: %d", id)
+	}
+	return &products[0], nil
+}
+
+func (pr ProductRepository) getProductsWithCondition(condition string, params ...any) ([]models.Product, error) {
+	return ExecuteWithResult[[]models.Product](pr.BaseRepository, func(db IDbExecutable) ([]models.Product, error) {
 		query := `
 		SELECT
 			p.id
-			, p.category_id
+			, p.catalog_id
 			, p.name
 			, p.description
 			, p.created
@@ -199,32 +122,52 @@ func (pr ProductRepository) GetProductById(id int64) (*models.Product, error) {
 			, attr.key
 			, attr.value
 			, attr.value_type
-		FROM products p 
-			LEFT JOIN skus sku ON 
+		FROM products p
+			LEFT JOIN skus sku ON
 				sku.product_id = p.id
 			LEFT JOIN attributes attr ON
-				attr.sku_id = sku.id 
-		WHERE p.id = ?`
+				attr.sku_id = sku.id
+		` + condition
 
-		rows, err := db.Query(query, id)
+		rows, err := db.Query(query, params...)
 		if err != nil {
 			return nil, err
 		}
 
+		// helper structs
+		type skuNullable struct {
+			Id        sql.NullInt64
+			ProductId sql.NullInt64
+			Amount    sql.NullFloat64
+			Price     sql.NullFloat64
+			Unit      sql.NullString
+			Created   sql.NullTime
+			Updated   sql.NullTime
+			Archived  sql.NullTime
+		}
+
+		type attrNullable struct {
+			SkuId     sql.NullInt64
+			Key       sql.NullString
+			Value     sql.NullString
+			ValueType sql.NullString
+		}
+
 		// result object
-		var product models.Product
+		var products map[int64]models.Product = make(map[int64]models.Product, 0) // key - productId, value = product
 
 		// sku and attributers store
-		var skus map[int64]models.Sku = make(map[int64]models.Sku)                       // key - skuId, value - sku
-		var attributes map[int64][]models.Attribute = make(map[int64][]models.Attribute) // key - skuId, value - []attribute
+		var skus map[int64]skuNullable = make(map[int64]skuNullable)             // key - skuId, value - sku
+		var attributes map[int64][]attrNullable = make(map[int64][]attrNullable) // key - skuId, value - []attribute
 
 		for rows.Next() {
-			var sku models.Sku
-			var attr models.Attribute
+			var product models.Product
+			var sku skuNullable
+			var attr attrNullable
 
 			err = rows.Scan(
 				&product.Id,
-				&product.CategoryId,
+				&product.CatalogId,
 				&product.Name,
 				&product.Description,
 				&product.Created,
@@ -247,19 +190,57 @@ func (pr ProductRepository) GetProductById(id int64) (*models.Product, error) {
 				return nil, err
 			}
 
+			// store product
+			products[product.Id] = product
+
 			// store skus
-			skus[sku.Id] = sku
+			if sku.Id.Valid {
+				skus[sku.Id.Int64] = sku
+			}
 
 			// store attributes
-			attributes[attr.SkuId] = append(attributes[attr.SkuId], attr)
+			if attr.SkuId.Valid {
+				attributes[attr.SkuId.Int64] = append(attributes[attr.SkuId.Int64], attr)
+			}
 		}
 
-		// add attributes to sku, add sku to product
-		for _, s := range skus {
-			s.Attributes = append(s.Attributes, attributes[s.Id]...)
-			product.Skus = append(product.Skus, s)
+		// build product objects
+		var output []models.Product = make([]models.Product, 0)
+		for _, p := range products {
+			for _, s := range skus {
+				if s.ProductId.Valid {
+					if s.ProductId.Int64 != p.Id {
+						continue
+					}
+
+					sku := models.Sku{
+						Id:        s.Id.Int64,
+						ProductId: s.ProductId.Int64,
+						Amount:    float32(s.Amount.Float64),
+						Price:     float32(s.Price.Float64),
+						Unit:      s.Unit.String,
+						Created:   s.Created.Time,
+						Updated:   s.Updated,
+						Archived:  s.Archived,
+					}
+
+					for _, a := range attributes[s.Id.Int64] {
+						attr := models.Attribute{
+							SkuId:     a.SkuId.Int64,
+							Key:       a.Key.String,
+							Value:     a.Value.String,
+							ValueType: a.ValueType.String,
+						}
+
+						sku.Attributes = append(sku.Attributes, attr)
+					}
+
+					p.Skus = append(p.Skus, sku)
+				}
+			}
+			output = append(output, p)
 		}
 
-		return &product, nil
+		return output, nil
 	})
 }

@@ -6,10 +6,20 @@ import (
 	"testing"
 )
 
+// setup repo
 var repo ProductRepository = ProductRepository{
 	BaseRepository: BaseRepository{
 		ConnectionString: configuration.ConnectionString,
 	},
+}
+
+// tests
+func Test_GetProductsByCatalogId(t *testing.T) {
+	var id int64 = 1
+	products, err := repo.GetProductsByCatalogId(id)
+	if err != nil || products == nil {
+		t.Errorf("unable to get products by catalog id")
+	}
 }
 
 func Test_ArchiveProduct(t *testing.T) {
@@ -27,9 +37,9 @@ func TestProductRepository_UpdateProduct(t *testing.T) {
 		t.Errorf("unable to get product")
 	}
 
-	productUpdate := m.ProductUpdate{
+	productUpdate := m.Product{
 		Id:          id,
-		CategoryId:  2,
+		CatalogId:   2,
 		Name:        "T-shirt2",
 		Description: "Nice and warm",
 	}
@@ -72,7 +82,7 @@ func TestProductRepository_GetById(t *testing.T) {
 
 func TestProductRepository_Insert(t *testing.T) {
 	product := m.Product{
-		CategoryId:  1,
+		CatalogId:   1,
 		Name:        "T-shirt",
 		Description: "Super comfortable and warm",
 		Skus: []m.Sku{

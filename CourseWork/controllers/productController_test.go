@@ -3,8 +3,8 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
-	dbStore "main/DbStore"
 	"main/configuration"
+	"main/dbstore"
 	m "main/models"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-var db dbStore.DbStore = dbStore.GetNewDbStore(configuration.ConnectionString)
+var db dbstore.DbStore = dbstore.GetNewDbStore(configuration.ConnectionString)
 var controller ProductController = ProductController{Db: db}
 
 func Test_GetProductsByCatalogId(t *testing.T) {

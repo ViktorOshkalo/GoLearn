@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
-	dbStore "main/DbStore"
-	conf "main/configuration"
+	"main/configuration"
 	"main/controllers"
+	"main/dbstore"
 	"net/http"
 
 	"github.com/gorilla/mux"
 )
 
-var db dbStore.DbStore
+var db dbstore.DbStore
 var productController controllers.ProductController
 
 func AuthenticateMiddleware(next http.Handler) http.Handler {
@@ -21,12 +21,12 @@ func AuthenticateMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		if username != conf.User {
+		if username != configuration.User {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		if password != conf.Password {
+		if password != configuration.Password {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -38,7 +38,9 @@ func AuthenticateMiddleware(next http.Handler) http.Handler {
 func main() {
 	fmt.Println("Yoo G")
 
-	db = dbStore.GetNewDbStore(conf.ConnectionString)
+	configuration.Setup()
+
+	db = dbstore.GetNewDbStore(configuration.ConnectionString)
 	productController = controllers.ProductController{Db: db}
 
 	router := mux.NewRouter()

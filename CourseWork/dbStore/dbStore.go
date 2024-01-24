@@ -1,7 +1,7 @@
-package dbStore
+package dbstore
 
 import (
-	r "main/dbStore/repositories"
+	r "main/repositories"
 )
 
 type DbStore struct {

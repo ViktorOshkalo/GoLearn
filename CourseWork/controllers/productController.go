@@ -3,7 +3,7 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
-	dbStore "main/DbStore"
+	"main/dbstore"
 	"main/models"
 	"net/http"
 	"strconv"
@@ -12,7 +12,7 @@ import (
 )
 
 type ProductController struct {
-	Db dbStore.DbStore
+	Db dbstore.DbStore
 }
 
 func (pc ProductController) GetProductsByCatalogHandler(w http.ResponseWriter, r *http.Request) {

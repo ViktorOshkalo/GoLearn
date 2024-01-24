@@ -1,6 +1,10 @@
 package dbstore
 
 import (
+	"database/sql"
+	"fmt"
+	"log"
+	"main/configuration"
 	r "main/repositories"
 )
 
@@ -16,4 +20,19 @@ func GetNewDbStore(connString string) DbStore {
 		Skus:       r.SkuRepository{BaseRepository: r.BaseRepository{ConnectionString: connString}},
 		Attributes: r.AttributeRepository{BaseRepository: r.BaseRepository{ConnectionString: connString}},
 	}
+}
+
+func (dbs *DbStore) Ping() {
+	db, err := sql.Open(configuration.SqlProvider, configuration.ConnectionString)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	err = db.Ping()
+	if err != nil {
+		log.Fatal("error pinging database:", err)
+	}
+
+	fmt.Println("MySQL server is reachable.")
 }

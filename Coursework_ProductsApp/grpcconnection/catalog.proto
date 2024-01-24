@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package catalog;
+
+option go_package = "roductsapp/grpcconnection";
+
+import "google/protobuf/timestamp.proto";
+
+message Attribute {
+  int64 sku_id = 1;
+  string key = 2;
+  string value = 3;
+  string value_type = 4;
+}
+
+message Sku {
+  int64 id = 1;
+  int64 product_id = 2;
+  float amount = 3;
+  float price = 4;
+  string unit = 5;
+  google.protobuf.Timestamp created = 6;
+  google.protobuf.Timestamp updated = 7;
+  google.protobuf.Timestamp archived = 8;
+  repeated Attribute attributes = 9;
+}
+
+message Product {
+  int64 id = 1;
+  int64 catalog_id = 2;
+  string name = 3;
+  string description = 4;
+  google.protobuf.Timestamp created = 5;
+  google.protobuf.Timestamp updated = 6;
+  google.protobuf.Timestamp archived = 7;
+  repeated Sku skus = 8;
+}
+
+message Filter {
+  map<string, string> properties = 1;
+}
+
+message Request {
+  int64 catalog_id = 1;
+  Filter filter = 2;
+}
+
+message Response {
+  repeated Product products = 1;
+}
+
+service Products {
+  rpc GetProductsByCatalogIdWithFilter(Request) returns (Response) {}
+}

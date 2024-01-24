@@ -10,9 +10,11 @@ import (
 
 var SqlProvider string = "mysql"
 
+var User string
+var Password string
 var ConnectionString string
-var User string = "admin"
-var Password string = "admin"
+var GrpcHost string
+var GrpcServerPort string
 
 func Setup() {
 	err := godotenv.Load()
@@ -33,4 +35,7 @@ func Setup() {
 
 	User = os.Getenv("APP_USER")
 	Password = os.Getenv("APP_USER_PASSWORD")
+
+	GrpcHost = os.Getenv("GRPC_HOST")
+	GrpcServerPort = os.Getenv("GRPC_SERVER_PORT")
 }

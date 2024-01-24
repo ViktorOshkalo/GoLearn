@@ -18,6 +18,28 @@ services:
     - DB_NAME=ProductsAppDb
     - APP_USER=admin
     - APP_USER_PASSWORD=admin
+    - GRPC_HOST = localhost
+    - GRPC_SERVER_PORT = 50051    
+
+  appgrpc:
+    build:
+      context: .
+      dockerfile: Dockerfile.appgrpc
+    restart: always
+    container_name: products-app-grpc
+    ports:
+      - "50051:50051"
+    depends_on:
+      - mysql
+    environment:
+    - DB_HOST=mysql
+    - DB_USER=user
+    - DB_PASSWORD=password
+    - DB_NAME=ProductsAppDb
+    - APP_USER=admin
+    - APP_USER_PASSWORD=admin 
+    - GRPC_HOST = localhost
+    - GRPC_SERVER_PORT = 50051
 
   mysql:
     image: mysql:latest

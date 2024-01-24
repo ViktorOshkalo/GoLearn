@@ -22,7 +22,7 @@ services:
   mysql:
     image: mysql:latest
     restart: always
-    container_name: products-mysql-container
+    container_name: products-mysql
     environment:
       MYSQL_DATABASE: "ProductsAppDb"
       MYSQL_USER: "user"

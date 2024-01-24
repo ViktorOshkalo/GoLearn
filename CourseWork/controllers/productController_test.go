@@ -16,7 +16,7 @@ import (
 var db dbStore.DbStore = dbStore.GetNewDbStore(configuration.ConnectionString)
 var controller ProductController = ProductController{Db: db}
 
-func TestProductController_GetProductsByCatalogId(t *testing.T) {
+func Test_GetProductsByCatalogId(t *testing.T) {
 	filter := map[string]string{
 		"Color": "Black",
 		"Size":  "M",
@@ -44,10 +44,14 @@ func TestProductController_GetProductsByCatalogId(t *testing.T) {
 		if w.Code != http.StatusOK {
 			t.Errorf("expected status code %d, received %d", http.StatusOK, w.Code)
 		}
+
+		if w.Result().ContentLength == 0 {
+			t.Errorf("empty body")
+		}
 	}
 }
 
-func TestProductController_AddProduct(t *testing.T) {
+func Test_AddProduct(t *testing.T) {
 	product := m.Product{
 		CatalogId:   1,
 		Name:        "T-shirt",
@@ -89,5 +93,9 @@ func TestProductController_AddProduct(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Errorf("expected status code %d, received %d", http.StatusOK, w.Code)
+	}
+
+	if w.Result().ContentLength == 0 {
+		t.Errorf("empty body")
 	}
 }

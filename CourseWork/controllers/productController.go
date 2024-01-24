@@ -69,3 +69,35 @@ func (pc ProductController) AddProductHandler(w http.ResponseWriter, r *http.Req
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(id)
 }
+
+func (pc ProductController) GetProductHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	productIDStr := vars["id"]
+
+	productID, err := strconv.ParseInt(productIDStr, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid product id", http.StatusBadRequest)
+		return
+	}
+
+	product, err := pc.Db.Products.GetProductById(productID)
+	if err != nil {
+		errMessage := fmt.Sprintf("unable to get product by id: %d", productID)
+		http.Error(w, errMessage, http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(product)
+}
+
+func (pc ProductController) GetAllProductsHandler(w http.ResponseWriter, r *http.Request) {
+	products, err := pc.Db.Products.GetAllProducts()
+	if err != nil {
+		http.Error(w, "unable to get products", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(products)
+}

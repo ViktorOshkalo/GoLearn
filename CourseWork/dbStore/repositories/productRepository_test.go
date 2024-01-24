@@ -6,15 +6,27 @@ import (
 	"testing"
 )
 
-// setup repo
-var repo ProductRepository = ProductRepository{
-	BaseRepository: BaseRepository{
-		ConnectionString: configuration.ConnectionString,
-	},
+var repo ProductRepository
+
+func setup() {
+	// todo check if db is test db
+
+	// setup repo
+	repo = ProductRepository{
+		BaseRepository: BaseRepository{
+			ConnectionString: configuration.ConnectionString,
+		},
+	}
+}
+
+func TestMain(m *testing.M) {
+	setup()
+	m.Run()
 }
 
 // tests
 func Test_GetProductsByCatalogIdWithFilter(t *testing.T) {
+	// positive
 	var id int64 = 1
 	filter := map[string]string{
 		"Color": "Black",
@@ -23,6 +35,37 @@ func Test_GetProductsByCatalogIdWithFilter(t *testing.T) {
 	products, err := repo.GetProductsByCatalogIdWithFilter(id, filter)
 	if err != nil || products == nil {
 		t.Errorf("unable to get products by catalog id and filter")
+	}
+
+	for _, p := range products {
+		for _, s := range p.Skus {
+			found := 0
+			for _, a := range s.Attributes {
+				if v, exists := filter[a.Key]; exists {
+					if v == filter[a.Key] {
+						found++
+					}
+				}
+			}
+			if found < len(filter) {
+				t.Errorf("sku has not enough attributes accordingly to applied filter")
+			}
+		}
+	}
+
+	// negative
+	filter = map[string]string{
+		"Color": "Yellow",
+		"Size":  "XXL",
+	}
+
+	products, err = repo.GetProductsByCatalogIdWithFilter(id, filter)
+	if err != nil {
+		t.Errorf("unable to get products by catalog id and filter")
+	}
+
+	if len(products) > 0 {
+		t.Errorf("shouldn't be products by this filter")
 	}
 }
 
@@ -40,22 +83,35 @@ func Test_ArchiveProduct(t *testing.T) {
 	if err != nil {
 		t.Errorf("unable to archive product")
 	}
-}
 
-func TestProductRepository_UpdateProduct(t *testing.T) {
-	var id int64 = 1
 	product, err := repo.GetProductById(id)
 	if err != nil {
 		t.Errorf("unable to get product")
 	}
 
+	if !product.Archived.Valid {
+		t.Errorf("archive time is not correct")
+	}
+}
+
+func Test_UpdateProduct(t *testing.T) {
+	var id int64 = 1
+	product, err := repo.GetProductById(id)
+	if err != nil {
+		t.Errorf("unable to get product")
+	}
+	lastTimeUpdated := product.Updated
+
+	var catalogIdNew int64 = 2
+	nameNew := "T-shirt2"
+	descriptionNew := "Nice and warm"
+
 	productUpdate := m.Product{
 		Id:          id,
-		CatalogId:   2,
-		Name:        "T-shirt2",
-		Description: "Nice and warm",
+		CatalogId:   catalogIdNew,
+		Name:        nameNew,
+		Description: descriptionNew,
 	}
-	timeUpdatedOrig := product.Updated
 
 	err = repo.UpdateProduct(productUpdate)
 	if err != nil {
@@ -63,36 +119,53 @@ func TestProductRepository_UpdateProduct(t *testing.T) {
 	}
 
 	productUpdated, err := repo.GetProductById(id)
-
-	timeUpdated := productUpdated.Updated
 	if err != nil {
 		t.Errorf("unable to get product")
 	}
 
-	if !timeUpdated.Valid {
+	newTimeUpdated := productUpdated.Updated
+
+	if !newTimeUpdated.Valid {
 		t.Errorf("time updated is not valid")
 	}
 
-	if timeUpdatedOrig.Valid && timeUpdated.Time.Before(timeUpdatedOrig.Time) {
+	if lastTimeUpdated.Valid && newTimeUpdated.Time.Before(lastTimeUpdated.Time) {
 		t.Errorf("update time is not correct")
+	}
+
+	if productUpdated.CatalogId != int64(catalogIdNew) {
+		t.Errorf("catalog id is not updated")
+	}
+
+	if productUpdated.Name != nameNew {
+		t.Errorf("name is not updated")
+	}
+
+	if productUpdated.Description != descriptionNew {
+		t.Errorf("description is not updated")
 	}
 }
 
-func TestProductRepository_GetAll(t *testing.T) {
+func Test_GetAll(t *testing.T) {
 	products, err := repo.GetAllProducts()
-	if err != nil || products == nil {
+	if err != nil || products == nil || len(products) == 0 {
 		t.Errorf("unable to get all products")
 	}
 }
 
-func TestProductRepository_GetById(t *testing.T) {
-	product, err := repo.GetProductById(1)
+func Test_GetById(t *testing.T) {
+	var id int64 = 1
+	product, err := repo.GetProductById(id)
 	if err != nil || product == nil {
 		t.Errorf("unable to get product")
 	}
+
+	if product.Id != id {
+		t.Errorf("wrong product received")
+	}
 }
 
-func TestProductRepository_Insert(t *testing.T) {
+func Test_Insert(t *testing.T) {
 	product := m.Product{
 		CatalogId:   1,
 		Name:        "T-shirt",

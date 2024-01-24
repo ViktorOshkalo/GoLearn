@@ -33,7 +33,7 @@ func Test_GetProductsByCatalogIdWithFilter(t *testing.T) {
 		"Size":  "M",
 	}
 	products, err := repo.GetProductsByCatalogIdWithFilter(id, filter)
-	if err != nil || products == nil {
+	if err != nil || products == nil || len(products) == 0 {
 		t.Errorf("unable to get products by catalog id and filter")
 	}
 
@@ -72,7 +72,7 @@ func Test_GetProductsByCatalogIdWithFilter(t *testing.T) {
 func Test_GetProductsByCatalogId(t *testing.T) {
 	var id int64 = 1
 	products, err := repo.GetProductsByCatalogId(id)
-	if err != nil || products == nil {
+	if err != nil || products == nil || len(products) == 0 {
 		t.Errorf("unable to get products by catalog id")
 	}
 }

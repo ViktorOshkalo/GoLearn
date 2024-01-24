@@ -9,12 +9,10 @@ import (
 var repo ProductRepository
 
 func setup() {
-	// todo check if db is test db
-
 	// setup repo
 	repo = ProductRepository{
 		BaseRepository: BaseRepository{
-			ConnectionString: configuration.ConnectionString,
+			ConnectionString: configuration.ConnectionStringTest,
 		},
 	}
 }

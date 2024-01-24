@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-var db dbstore.DbStore = dbstore.GetNewDbStore(configuration.ConnectionString)
+var db dbstore.DbStore = dbstore.GetNewDbStore(configuration.ConnectionStringTest)
 var controller ProductController = ProductController{Db: db}
 
 func Test_GetProductsByCatalogId(t *testing.T) {

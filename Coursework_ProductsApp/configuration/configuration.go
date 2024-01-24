@@ -8,6 +8,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
+var ConnectionStringTest string = "user:password@tcp(localhost:3306)/ProductsAppDb?parseTime=True"
+
 var SqlProvider string = "mysql"
 
 var User string
